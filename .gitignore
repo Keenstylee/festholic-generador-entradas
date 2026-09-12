@@ -1,0 +1,8 @@
+.venv/
+.venv-new/
+.venv-python311-old/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+tmp/
