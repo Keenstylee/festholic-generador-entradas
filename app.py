@@ -128,6 +128,11 @@ st.markdown(
         font-weight: 850 !important;
         transition: transform 170ms ease, filter 170ms ease !important;
     }
+    .stDownloadButton > button[kind="primary"] *,
+    .stDownloadButton > button[kind="primary"] p {
+        color: #ffffff !important;
+        opacity: 1 !important;
+    }
     .stButton > button[kind="primary"]:hover,
     .stDownloadButton > button[kind="primary"]:hover {
         transform: translateY(-1px);
@@ -308,43 +313,38 @@ if pdf_data is not None:
         with st.container(border=True):
             st.subheader("5. Generar y descargar PDF")
             if not qr_ready:
-                st.warning("El botón se habilitará cuando el QR haya sido reconstruido y validado.", icon="⚠️")
-
-            if st.button("Digitalizar entrada y generar PDF", type="primary", disabled=not qr_ready):
-                with st.spinner("Eliminando el QR anterior e insertando el QR digitalizado…"):
-                    edited = edit_ticket_fields(
-                        pdf_data,
-                        {
-                            "event": event,
-                            "day": day,
-                            "date": date,
-                            "time": time,
-                            "location": location,
-                            "ticket_type": ticket_type,
-                            "row": row,
-                            "seat": seat,
-                            "category": category,
-                        },
-                        event_image=event_image.getvalue() if event_image is not None else None,
-                        image_mode="cover" if image_mode_label == "Rellenar todo el espacio" else "contain",
-                        reconstructed_qr=qr_png,
+                st.info("Sube una fotografía válida del QR para preparar la entrada digitalizada.")
+            else:
+                try:
+                    with st.spinner("Preparando la entrada digitalizada…"):
+                        edited = edit_ticket_fields(
+                            pdf_data,
+                            {
+                                "event": event,
+                                "day": day,
+                                "date": date,
+                                "time": time,
+                                "location": location,
+                                "ticket_type": ticket_type,
+                                "row": row,
+                                "seat": seat,
+                                "category": category,
+                            },
+                            event_image=event_image.getvalue() if event_image is not None else None,
+                            image_mode="cover" if image_mode_label == "Rellenar todo el espacio" else "contain",
+                            reconstructed_qr=qr_png,
+                        )
+                    st.success("Entrada digitalizada lista para descargar.", icon="✅")
+                    st.download_button(
+                        "Descargar entrada digitalizada",
+                        data=edited,
+                        file_name=f"digitalizada_{pdf_name}",
+                        mime="application/pdf",
+                        type="primary",
+                        use_container_width=True,
                     )
-                    st.session_state["generated_pdf"] = edited
-                    st.session_state["generated_pdf_name"] = f"generado_{pdf_name}"
-                    st.success(
-                        "PDF generado: el QR anterior fue eliminado y sustituido por el QR "
-                        "digitalizado y validado.",
-                        icon="✅",
-                    )
-
-            if "generated_pdf" in st.session_state:
-                st.download_button(
-                    "Descargar PDF generado",
-                    data=st.session_state["generated_pdf"],
-                    file_name=st.session_state["generated_pdf_name"],
-                    mime="application/pdf",
-                    type="primary",
-                )
+                except (ValueError, RuntimeError) as error:
+                    st.error(str(error), icon="🚨")
     except (ValueError, RuntimeError) as error:
         st.error(str(error), icon="🚨")
 elif qr_file is not None:
