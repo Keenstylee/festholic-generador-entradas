@@ -34,6 +34,8 @@ EDITABLE_TEXT_ORIGINS = (
 
 # Área de la ilustración del artista en la cabecera. No invade la fecha ni el QR.
 EVENT_IMAGE_AREA = (0, 33, 136, 101)
+# Margen interior para que el logo no ocupe por completo la cabecera.
+EVENT_IMAGE_PADDING = 7
 QR_IMAGE_AREA = (263, 49, 70, 70)
 
 
@@ -232,9 +234,18 @@ def _draw_event_image(
     overlay.setFillColorRGB(*_hex_color("#4215a3"))
     overlay.rect(x, bottom, width, height, fill=1, stroke=0)
 
+    padding = EVENT_IMAGE_PADDING
+    content_x = x + padding
+    content_bottom = bottom + padding
+    content_width = width - (padding * 2)
+    content_height = height - (padding * 2)
+
     with Image.open(BytesIO(image_data)) as source:
         source = source.convert("RGBA")
-        target_size = (max(1, round(width * 4)), max(1, round(height * 4)))
+        target_size = (
+            max(1, round(content_width * 4)),
+            max(1, round(content_height * 4)),
+        )
         if mode == "cover":
             prepared = ImageOps.fit(source, target_size, method=Image.Resampling.LANCZOS)
         else:
@@ -245,8 +256,8 @@ def _draw_event_image(
         png.seek(0)
         draw_width = prepared.width / 4
         draw_height = prepared.height / 4
-        draw_x = x + (width - draw_width) / 2
-        draw_y = bottom + (height - draw_height) / 2
+        draw_x = content_x + (content_width - draw_width) / 2
+        draw_y = content_bottom + (content_height - draw_height) / 2
         overlay.drawImage(
             ImageReader(png), draw_x, draw_y,
             width=draw_width, height=draw_height,
