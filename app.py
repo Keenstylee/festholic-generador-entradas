@@ -267,6 +267,10 @@ if pdf_data is not None:
     try:
         info = inspect_pdf(pdf_data)
         detected = inspect_ticket_fields(pdf_data)
+        # La plantilla incluida tiene una categoría textual. Esta salvaguarda evita
+        # que una sesión antigua de Streamlit conserve como categoría el N.º de orden.
+        if pdf_source == "Plantilla Teleticket" and detected["category"].isdigit():
+            detected["category"] = "PRE-VENTA IBK"
         with st.container(border=True):
             st.subheader("3. Datos editables del evento")
             st.caption(f"Plantilla cargada correctamente: {info['pages']} página(s).")
