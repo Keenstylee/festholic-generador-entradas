@@ -18,6 +18,7 @@ from src.reconstruction import encode_png
 
 APP_DIR = Path(__file__).resolve().parent
 LOGO_PATH = APP_DIR / "assets" / "festholic.png"
+DEFAULT_TEMPLATE_PATH = APP_DIR / "assets" / "plantilla-teleticket.pdf"
 
 st.set_page_config(
     page_title="Digitalizador de entradas | Festholic",
@@ -177,17 +178,36 @@ def digitalize_qr(data: bytes):
     return image, process_image(image)
 
 
+pdf_data = None
+pdf_name = "plantilla-teleticket.pdf"
+
 source_left, source_right = st.columns(2)
 with source_left:
     with st.container(border=True):
         st.subheader("1. Subir PDF base")
-        st.caption("Selecciona la entrada que conservará su diseño original.")
-        pdf_file = st.file_uploader(
-            "PDF base de la entrada",
-            type=["pdf"],
-            key="pdf_file",
-            help="Se conservarán el diseño y los códigos de control del documento.",
+        st.caption("Usa la plantilla incluida o selecciona otro diseño de entrada.")
+        pdf_source = st.radio(
+            "Plantilla del documento",
+            ["Plantilla Teleticket", "Subir otro PDF"],
+            horizontal=True,
+            key="pdf_source",
         )
+        if pdf_source == "Plantilla Teleticket":
+            if DEFAULT_TEMPLATE_PATH.exists():
+                pdf_data = DEFAULT_TEMPLATE_PATH.read_bytes()
+                st.success("Plantilla Teleticket seleccionada.", icon="✅")
+            else:
+                st.error("No se encontró la plantilla Teleticket incluida.", icon="🚨")
+        else:
+            pdf_file = st.file_uploader(
+                "PDF base de la entrada",
+                type=["pdf"],
+                key="pdf_file",
+                help="Se conservarán el diseño y los códigos de control del documento.",
+            )
+            if pdf_file is not None:
+                pdf_data = pdf_file.getvalue()
+                pdf_name = pdf_file.name
 with source_right:
     with st.container(border=True):
         st.subheader("2. Subir código QR")
@@ -243,8 +263,7 @@ def render_qr_preview() -> None:
     else:
         st.error(qr_result.message, icon="🚨")
 
-if pdf_file is not None:
-    pdf_data = pdf_file.getvalue()
+if pdf_data is not None:
     try:
         info = inspect_pdf(pdf_data)
         detected = inspect_ticket_fields(pdf_data)
@@ -307,7 +326,7 @@ if pdf_file is not None:
                         reconstructed_qr=qr_png,
                     )
                     st.session_state["generated_pdf"] = edited
-                    st.session_state["generated_pdf_name"] = f"generado_{pdf_file.name}"
+                    st.session_state["generated_pdf_name"] = f"generado_{pdf_name}"
                     st.success(
                         "PDF generado: el QR anterior fue eliminado y sustituido por el QR "
                         "digitalizado y validado.",

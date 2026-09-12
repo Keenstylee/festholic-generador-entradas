@@ -80,16 +80,49 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
     )
     schedule = re.match(r"^([^,]+),\s*(.+)$", lines[schedule_index]) if schedule_index >= 0 else None
     sector_index = next((i for i, line in enumerate(lines) if line.casefold() == "sector"), -1)
+    flat_text = " ".join(lines)
+
+    def value_after_label(label: str) -> str:
+        match = re.search(rf"\b{label}\s+([^\s]+)", flat_text, re.IGNORECASE)
+        return match.group(1).strip() if match else ""
+
+    ticket_type = lines[sector_index + 1] if sector_index >= 0 and sector_index + 1 < len(lines) else ""
+    if not ticket_type:
+        ticket_match = re.search(r"\bSector\s+(.+?)\s+Fila\b", flat_text, re.IGNORECASE)
+        ticket_type = ticket_match.group(1).strip() if ticket_match else ""
+
+    category = ""
+    for line in lines:
+        if not re.match(r"^Categor", line, re.IGNORECASE) or ":" not in line:
+            continue
+        candidate = line.split(":", 1)[1].strip()
+        candidate = re.sub(r"\s+Sector\s*$", "", candidate, flags=re.IGNORECASE).strip()
+        if candidate:
+            category = candidate
+            break
+    if not category and sector_index >= 0:
+        fila_index = next(
+            (i for i in range(sector_index + 2, len(lines)) if lines[i].casefold() == "fila"),
+            -1,
+        )
+        if fila_index > sector_index:
+            candidates = [
+                line for line in lines[sector_index + 2:fila_index]
+                if not re.match(r"^(?:S/\s*)?[\d.,]+$", line, re.IGNORECASE)
+            ]
+            if candidates:
+                category = candidates[-1]
+
     return {
         "day": schedule.group(1).title() if schedule else "",
         "date": schedule.group(2).strip() if schedule else "",
         "time": lines[schedule_index + 1] if schedule_index >= 0 and schedule_index + 1 < len(lines) else "",
         "location": lines[schedule_index + 2] if schedule_index >= 0 and schedule_index + 2 < len(lines) else "",
         "event": lines[schedule_index + 3] if schedule_index >= 0 and schedule_index + 3 < len(lines) else "",
-        "ticket_type": lines[sector_index + 1] if sector_index >= 0 and sector_index + 1 < len(lines) else "",
-        "row": after("Fila"),
-        "seat": after("Asiento"),
-        "category": lines[sector_index - 1] if sector_index > 0 else "",
+        "ticket_type": ticket_type,
+        "row": after("Fila") or value_after_label("Fila"),
+        "seat": after("Asiento") or value_after_label("Asiento"),
+        "category": category,
     }
 
 

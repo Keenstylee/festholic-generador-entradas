@@ -45,6 +45,9 @@ def test_ticket_fields_are_detected_and_replaced():
     source = sample_ticket_pdf()
     detected = inspect_ticket_fields(source)
     assert detected["row"] == "78"
+    assert detected["seat"] == "19"
+    assert detected["ticket_type"] == "PLATINUM LATERAL"
+    assert detected["category"] == "PRE-VENTA IBK"
     result = edit_ticket_fields(source, {**detected, "row": "12", "seat": "34"})
     assert len(PdfReader(BytesIO(result)).pages) == 1
 
