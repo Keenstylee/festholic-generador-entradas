@@ -35,7 +35,7 @@ EDITABLE_TEXT_ORIGINS = (
 # Área de la ilustración del artista en la cabecera. No invade la fecha ni el QR.
 EVENT_IMAGE_AREA = (0, 33, 136, 101)
 # Margen interior para que el logo no ocupe por completo la cabecera.
-EVENT_IMAGE_PADDING = 7
+EVENT_IMAGE_PADDING = 12
 QR_IMAGE_AREA = (263, 49, 70, 70)
 
 
