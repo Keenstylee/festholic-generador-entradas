@@ -50,7 +50,9 @@ EDITABLE_TEXT_ORIGINS = (
 EVENT_IMAGE_AREA = (0, 33, 136, 101)
 # Margen interior para que el logo no ocupe por completo la cabecera.
 EVENT_IMAGE_PADDING = 12
-QR_IMAGE_AREA = (263, 49, 70, 70)
+# El QR reconstruido se desplaza ligeramente a la derecha para que el área
+# negra quede centrada con el número superior y el código inferior.
+QR_IMAGE_AREA = (266.5, 52, 62, 62)
 
 
 def inspect_pdf(data: bytes) -> dict:
@@ -269,7 +271,9 @@ def _qr_xobject_names(page) -> set[str]:
 def _remove_original_qr_image(page, reader: PdfReader) -> None:
     names = _qr_xobject_names(page)
     if not names or page.get_contents() is None:
-        raise ValueError("No se pudo localizar el QR original dentro del PDF.")
+        # Algunas entradas Teleticket incluyen el QR como trazos vectoriales.
+        # Su área se limpia en la capa de reemplazo, sin tocar los números.
+        return
     stream = ContentStream(page.get_contents(), reader)
     stream.operations = [
         (operands, operator)
@@ -341,11 +345,18 @@ def _draw_event_image(
 def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes) -> None:
     x, top, width, height = QR_IMAGE_AREA
     bottom = page_height - top - height
+    overlay.setFillColorRGB(1, 1, 1)
+    overlay.rect(256, page_height - 120, 84, 68, fill=1, stroke=0)
     try:
         with Image.open(BytesIO(qr_data)) as source:
             qr = source.convert("L")
             # Fuerza blanco y negro puro y mantiene bordes de módulo nítidos.
             qr = qr.point(lambda value: 255 if value >= 128 else 0, mode="1")
+            # Centra la matriz negra, no los márgenes desiguales del PNG.
+            ink_bounds = qr.convert("L").point(lambda value: 255 - value).getbbox()
+            if ink_bounds is None:
+                raise ValueError("El QR reconstruido está vacío.")
+            qr = qr.crop(ink_bounds)
             png = BytesIO()
             qr.save(png, format="PNG")
             png.seek(0)
