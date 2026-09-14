@@ -252,6 +252,8 @@ if pdf_data is not None:
                 row = st.text_input("Número de fila", detected["row"])
                 seat = st.text_input("Número de asiento", detected["seat"])
                 category = st.text_input("Categoría", detected["category"])
+                producer = st.text_input("Productor del evento", detected["producer"])
+                price = st.text_input("Precio", detected["price"])
 
         with st.container(border=True):
             render_qr_preview()
@@ -275,6 +277,8 @@ if pdf_data is not None:
                                 "row": row,
                                 "seat": seat,
                                 "category": category,
+                                "producer": producer,
+                                "price": price,
                             },
                             event_image=event_image.getvalue() if event_image is not None else None,
                             image_mode="cover" if image_mode_label == "Rellenar todo el espacio" else "contain",

@@ -35,6 +35,8 @@ def sample_ticket_pdf():
         ("Estadio Nacional", 520), ("Sector PLATINUM LATERAL Fila 78 Asiento 19", 390),
         ("Categoría: PRE-VENTA IBK Sector", 365),
         ("Evento: MAROON 5 EN LIMA CONCERTS", 280),
+        ("Produce: PRODUCTORA DE PRUEBA SAC", 255),
+        ("Precio: S/ 150.00", 230),
     ]:
         pdf.drawString(20, y, line)
     pdf.save()
@@ -48,7 +50,12 @@ def test_ticket_fields_are_detected_and_replaced():
     assert detected["seat"] == "19"
     assert detected["ticket_type"] == "PLATINUM LATERAL"
     assert detected["category"] == "PRE-VENTA IBK"
-    result = edit_ticket_fields(source, {**detected, "row": "12", "seat": "34"})
+    assert detected["producer"] == "PRODUCTORA DE PRUEBA SAC"
+    assert detected["price"] == "S/ 150.00"
+    result = edit_ticket_fields(
+        source,
+        {**detected, "row": "12", "seat": "34", "price": "S/ 175.00"},
+    )
     assert len(PdfReader(BytesIO(result)).pages) == 1
 
 

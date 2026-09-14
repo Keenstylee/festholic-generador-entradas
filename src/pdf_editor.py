@@ -19,17 +19,31 @@ TICKET_FIELDS = {
     "seat": (299, 228, 39, 19, 10, "#8055e8"),
     "category": (65, 255, 120, 19, 10, "#8055e8"),
     "event": (64, 335, 135, 18, 8, "#999999"),
+    "producer": (64, 358, 130, 18, 8, "#999999"),
+    "price": (273, 380, 62, 18, 8, "#999999"),
 }
 
 # Coordenadas de origen de los textos editables en el PDF (x, y desde abajo).
 # Se eliminan los operadores de texto en estas áreas, sin pintar el fondo.
 EDITABLE_TEXT_ORIGINS = (
+    # Plantillas anteriores, con coordenadas de texto positivas.
     (140, 510, 255, 570),  # día, fecha, hora y ubicación
     (15, 378, 265, 390),   # sector / tipo de entrada
     (270, 378, 300, 390),  # fila
     (300, 378, 335, 390),  # asiento
     (60, 350, 190, 365),   # categoría
     (60, 272, 205, 285),   # evento
+    (60, 245, 195, 265),   # productor
+    (265, 220, 338, 245),  # precio
+    # Plantilla Teleticket nueva. Su contenido usa una transformación que deja
+    # los orígenes de texto en coordenadas Y negativas dentro del stream.
+    (140, -100, 255, -40),   # día, fecha, hora y ubicación
+    (15, -230, 265, -215),   # sector / tipo de entrada
+    (265, -230, 340, -215),  # fila y asiento
+    (60, -255, 190, -245),   # categoría
+    (60, -333, 220, -320),   # evento
+    (60, -356, 200, -345),   # productor
+    (265, -380, 338, -365),  # precio
 )
 
 # Área de la ilustración del artista en la cabecera. No invade la fecha ni el QR.
@@ -68,9 +82,15 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
 
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    def after(label: str) -> str:
-        for index, line in enumerate(lines[:-1]):
-            if line.casefold() == label.casefold():
+    def labeled_value(label: str) -> str:
+        prefix = f"{label}:"
+        for index, line in enumerate(lines):
+            if not line.casefold().startswith(prefix.casefold()):
+                continue
+            inline = line[len(prefix):].strip()
+            if inline:
+                return inline
+            if index + 1 < len(lines):
                 return lines[index + 1]
         return ""
 
@@ -83,15 +103,15 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
     schedule = re.match(r"^([^,]+),\s*(.+)$", lines[schedule_index]) if schedule_index >= 0 else None
     sector_index = next((i for i, line in enumerate(lines) if line.casefold() == "sector"), -1)
     flat_text = " ".join(lines)
-
-    def value_after_label(label: str) -> str:
-        match = re.search(rf"\b{label}\s+([^\s]+)", flat_text, re.IGNORECASE)
-        return match.group(1).strip() if match else ""
-
+    extended_template = any(line.casefold() == "produce:" for line in lines)
+    detail_match = re.search(
+        r"\bSector\s+(.+?)\s+Fila\s+([^\s]+)\s+Asiento\s+([^\s]+)",
+        flat_text,
+        re.IGNORECASE,
+    )
     ticket_type = lines[sector_index + 1] if sector_index >= 0 and sector_index + 1 < len(lines) else ""
-    if not ticket_type:
-        ticket_match = re.search(r"\bSector\s+(.+?)\s+Fila\b", flat_text, re.IGNORECASE)
-        ticket_type = ticket_match.group(1).strip() if ticket_match else ""
+    if detail_match:
+        ticket_type = detail_match.group(1).strip()
 
     category = ""
     for line in lines:
@@ -115,15 +135,55 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
             if candidates:
                 category = candidates[-1]
 
+    location_parts: list[str] = []
+    event = labeled_value("Evento")
+    producer = labeled_value("Produce")
+    price = labeled_value("Precio")
+    row = detail_match.group(2).strip() if detail_match else ""
+    seat = detail_match.group(3).strip() if detail_match else ""
+
+    # En la plantilla Teleticket nueva, pypdf devuelve primero las etiquetas
+    # y al final los valores visuales en este orden estable.
+    if extended_template and schedule_index >= 0:
+        tail = lines[schedule_index + 2:]
+        if len(tail) >= 7:
+            location_parts = tail[:-7]
+            ticket_type, category, _order, event, price, producer, _ruc = tail[-7:]
+    elif schedule_index >= 0:
+        for line in lines[schedule_index + 2:schedule_index + 5]:
+            compact = re.sub(r"\s+", "", line)
+            if (
+                re.fullmatch(r"\d{10,}", compact)
+                or re.search(r"\bSector\b", line, re.IGNORECASE)
+                or re.match(r"^(Evento|Produce|RUC|Precio)\s*:", line, re.IGNORECASE)
+            ):
+                break
+            location_parts.append(line)
+
+    fallback_event_index = schedule_index + 2 + len(location_parts)
+    fallback_event = (
+        lines[fallback_event_index]
+        if 0 <= fallback_event_index < len(lines)
+        else ""
+    )
+
+    day = schedule.group(1).title() if schedule else ""
+    if re.fullmatch(r"S.bado", day, re.IGNORECASE):
+        day = "Sábado"
+    elif re.fullmatch(r"Mi.rcoles", day, re.IGNORECASE):
+        day = "Miércoles"
+
     return {
-        "day": schedule.group(1).title() if schedule else "",
+        "day": day,
         "date": schedule.group(2).strip() if schedule else "",
         "time": lines[schedule_index + 1] if schedule_index >= 0 and schedule_index + 1 < len(lines) else "",
-        "location": lines[schedule_index + 2] if schedule_index >= 0 and schedule_index + 2 < len(lines) else "",
-        "event": lines[schedule_index + 3] if schedule_index >= 0 and schedule_index + 3 < len(lines) else "",
+        "location": " ".join(location_parts),
+        "event": event or fallback_event,
+        "producer": producer,
+        "price": price,
         "ticket_type": ticket_type,
-        "row": after("Fila") or value_after_label("Fila"),
-        "seat": after("Asiento") or value_after_label("Asiento"),
+        "row": row,
+        "seat": seat,
         "category": category,
     }
 
@@ -145,6 +205,19 @@ def _draw_replacement(overlay, page_height: float, spec, lines: list[str]) -> No
         for line in lines:
             overlay.drawString(x + 1, baseline, line)
             baseline -= font_size + 3
+
+
+def _wrap_location(value: str, max_chars: int = 22) -> list[str]:
+    """Divide ubicaciones largas en un máximo de dos líneas legibles."""
+    words = value.split()
+    if len(value) <= max_chars or len(words) < 2:
+        return [value]
+    first: list[str] = []
+    while words and len(" ".join(first + [words[0]])) <= max_chars:
+        first.append(words.pop(0))
+    if not first:
+        first.append(words.pop(0))
+    return [" ".join(first), " ".join(words)] if words else [" ".join(first)]
 
 
 def _remove_editable_text(page, reader: PdfReader) -> None:
@@ -317,12 +390,16 @@ def edit_ticket_fields(
         fields.get("time", "").strip(),
     ]
     _draw_replacement(overlay, height, TICKET_FIELDS["schedule"], schedule)
-    for name in ("location", "ticket_type", "row", "seat", "category", "event"):
+    for name in (
+        "location", "ticket_type", "row", "seat", "category", "event",
+        "producer", "price",
+    ):
+        value = fields.get(name, "").strip()
         _draw_replacement(
             overlay,
             height,
             TICKET_FIELDS[name],
-            [fields.get(name, "").strip()],
+            _wrap_location(value) if name == "location" else [value],
         )
     overlay.save()
     overlay_buffer.seek(0)
