@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from pathlib import Path
 
 import cv2
@@ -17,7 +16,6 @@ from src.reconstruction import encode_png
 
 
 APP_DIR = Path(__file__).resolve().parent
-LOGO_PATH = APP_DIR / "assets" / "festholic.png"
 DEFAULT_TEMPLATE_PATH = APP_DIR / "assets" / "plantilla-teleticket.pdf"
 
 st.set_page_config(
@@ -25,13 +23,6 @@ st.set_page_config(
     page_icon="🎟️",
     layout="wide",
 )
-
-
-def _logo_data_uri() -> str:
-    if not LOGO_PATH.exists():
-        return ""
-    encoded = base64.b64encode(LOGO_PATH.read_bytes()).decode("ascii")
-    return f"data:image/png;base64,{encoded}"
 
 
 st.markdown(
@@ -64,7 +55,7 @@ st.markdown(
     [data-testid="stToolbar"] { right: 1rem; }
     [data-testid="stMainBlockContainer"] {
         max-width: 1280px;
-        padding-top: 2rem;
+        padding-top: .8rem;
         padding-bottom: 4rem;
     }
 
@@ -74,30 +65,6 @@ st.markdown(
     }
 
     p, label, [data-testid="stCaptionContainer"] { color: var(--fh-muted); }
-
-    .fh-brand {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1.25rem;
-    }
-    .fh-brand img { width: 148px; height: auto; object-fit: contain; }
-    .fh-brand-copy { border-left: 1px solid var(--fh-border); padding-left: 1rem; }
-    .fh-brand-copy > span {
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid rgba(155, 92, 255, .32);
-        border-radius: 999px;
-        padding: .3rem .65rem;
-        color: #d9c7ff;
-        background: rgba(155, 92, 255, .1);
-        font-size: .74rem;
-        font-weight: 800;
-        letter-spacing: .04em;
-        text-transform: uppercase;
-    }
-    .fh-brand-copy h1 { margin: .45rem 0 .2rem; color: #fff; font-size: clamp(1.9rem, 4vw, 3rem); }
-    .fh-brand-copy p { margin: 0; max-width: 760px; }
 
     [data-testid="stVerticalBlockBorderWrapper"] {
         border: 1px solid var(--fh-border) !important;
@@ -146,33 +113,12 @@ st.markdown(
     hr { border-color: var(--fh-border) !important; }
 
     @media (max-width: 700px) {
-        [data-testid="stMainBlockContainer"] { padding: 1rem .8rem 2.5rem; }
-        .fh-brand { align-items: flex-start; }
-        .fh-brand img { width: 104px; margin-top: .25rem; }
-        .fh-brand-copy { padding-left: .75rem; }
-        .fh-brand-copy h1 { font-size: 1.72rem; }
+        [data-testid="stMainBlockContainer"] { padding: .65rem .8rem 2.5rem; }
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
-
-logo_uri = _logo_data_uri()
-logo_html = f'<img src="{logo_uri}" alt="Festholic">' if logo_uri else ""
-st.markdown(
-    f"""
-    <div class="fh-brand">
-      {logo_html}
-      <div class="fh-brand-copy">
-        <span>Herramienta Festholic</span>
-        <h1>Digitalizador de entradas</h1>
-        <p>Reconstruye el código QR, actualiza la información del evento y genera una entrada lista para descargar.</p>
-      </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 
 @st.cache_data(show_spinner=False)
 def digitalize_qr(data: bytes):
