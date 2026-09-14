@@ -37,6 +37,7 @@ def sample_ticket_pdf():
         ("Evento: MAROON 5 EN LIMA CONCERTS", 280),
         ("Produce: PRODUCTORA DE PRUEBA SAC", 255),
         ("Precio: S/ 150.00", 230),
+        ("RUC: 20123456789", 210),
     ]:
         pdf.drawString(20, y, line)
     pdf.save()
@@ -52,6 +53,7 @@ def test_ticket_fields_are_detected_and_replaced():
     assert detected["category"] == "PRE-VENTA IBK"
     assert detected["producer"] == "PRODUCTORA DE PRUEBA SAC"
     assert detected["price"] == "S/ 150.00"
+    assert detected["ruc"] == "20123456789"
     result = edit_ticket_fields(
         source,
         {**detected, "row": "12", "seat": "34", "price": "S/ 175.00"},

@@ -20,6 +20,7 @@ TICKET_FIELDS = {
     "category": (65, 255, 120, 19, 10, "#8055e8"),
     "event": (64, 335, 135, 18, 8, "#999999"),
     "producer": (64, 358, 130, 18, 8, "#999999"),
+    "ruc": (64, 382, 125, 18, 8, "#999999"),
     "price": (273, 380, 62, 18, 8, "#999999"),
 }
 
@@ -35,6 +36,7 @@ EDITABLE_TEXT_ORIGINS = (
     (60, 272, 205, 285),   # evento
     (60, 245, 195, 265),   # productor
     (265, 220, 338, 245),  # precio
+    (60, 220, 190, 245),   # RUC
     # Plantilla Teleticket nueva. Su contenido usa una transformación que deja
     # los orígenes de texto en coordenadas Y negativas dentro del stream.
     (140, -100, 255, -40),   # día, fecha, hora y ubicación
@@ -44,6 +46,7 @@ EDITABLE_TEXT_ORIGINS = (
     (60, -333, 220, -320),   # evento
     (60, -356, 200, -345),   # productor
     (265, -380, 338, -365),  # precio
+    (60, -382, 190, -365),   # RUC
 )
 
 # Área de la ilustración del artista en la cabecera. No invade la fecha ni el QR.
@@ -141,6 +144,7 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
     event = labeled_value("Evento")
     producer = labeled_value("Produce")
     price = labeled_value("Precio")
+    ruc = labeled_value("RUC")
     row = detail_match.group(2).strip() if detail_match else ""
     seat = detail_match.group(3).strip() if detail_match else ""
 
@@ -150,7 +154,7 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
         tail = lines[schedule_index + 2:]
         if len(tail) >= 7:
             location_parts = tail[:-7]
-            ticket_type, category, _order, event, price, producer, _ruc = tail[-7:]
+            ticket_type, category, _order, event, price, producer, ruc = tail[-7:]
     elif schedule_index >= 0:
         for line in lines[schedule_index + 2:schedule_index + 5]:
             compact = re.sub(r"\s+", "", line)
@@ -183,6 +187,7 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
         "event": event or fallback_event,
         "producer": producer,
         "price": price,
+        "ruc": ruc,
         "ticket_type": ticket_type,
         "row": row,
         "seat": seat,
@@ -403,7 +408,7 @@ def edit_ticket_fields(
     _draw_replacement(overlay, height, TICKET_FIELDS["schedule"], schedule)
     for name in (
         "location", "ticket_type", "row", "seat", "category", "event",
-        "producer", "price",
+        "producer", "ruc", "price",
     ):
         value = fields.get(name, "").strip()
         _draw_replacement(

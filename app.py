@@ -253,6 +253,7 @@ if pdf_data is not None:
                 seat = st.text_input("Número de asiento", detected["seat"])
                 category = st.text_input("Categoría", detected["category"])
                 producer = st.text_input("Productor del evento", detected["producer"])
+                ruc = st.text_input("RUC del productor", detected["ruc"], max_chars=11)
                 price = st.text_input("Precio", detected["price"])
 
         with st.container(border=True):
@@ -278,6 +279,7 @@ if pdf_data is not None:
                                 "seat": seat,
                                 "category": category,
                                 "producer": producer,
+                                "ruc": ruc,
                                 "price": price,
                             },
                             event_image=event_image.getvalue() if event_image is not None else None,
