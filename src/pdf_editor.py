@@ -6,6 +6,7 @@ import re
 from PIL import Image, ImageOps
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import ContentStream
+from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
@@ -204,12 +205,22 @@ def _draw_replacement(overlay, page_height: float, spec, lines: list[str]) -> No
     x, top, width, height, font_size, foreground = spec
     bottom = page_height - top - height
     overlay.setFillColorRGB(*_hex_color(foreground))
-    overlay.setFont("Helvetica", font_size)
+
+    def fitted_size(text: str) -> float:
+        measured = pdfmetrics.stringWidth(text, "Helvetica", font_size)
+        available = max(1.0, width - 2)
+        if measured <= available:
+            return float(font_size)
+        return max(5.5, font_size * available / measured)
+
     if len(lines) == 1:
-        overlay.drawString(x + 1, bottom + max(3, (height - font_size) / 2), lines[0])
+        size = fitted_size(lines[0])
+        overlay.setFont("Helvetica", size)
+        overlay.drawString(x + 1, bottom + max(3, (height - size) / 2), lines[0])
     else:
         baseline = page_height - top - font_size - 1
         for line in lines:
+            overlay.setFont("Helvetica", fitted_size(line))
             overlay.drawString(x + 1, baseline, line)
             baseline -= font_size + 3
 
