@@ -41,18 +41,19 @@ st.markdown(
     .preview-marker,.card-accent,.image-upload-marker{height:0;overflow:hidden}
     [data-testid="stVerticalBlockBorderWrapper"]{position:relative;overflow:hidden;border:1px solid var(--fh-border)!important;border-radius:18px!important;background:radial-gradient(circle at 94% 5%,rgba(37,201,232,.045),transparent 8rem),linear-gradient(135deg,var(--fh-card),var(--fh-card-deep))!important;box-shadow:0 16px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.035)}
     [data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent)::before{content:"";position:absolute;z-index:2;left:0;top:20%;width:3px;height:60%;border-radius:0 3px 3px 0}.st-key-pdf_card::before,[data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent--pdf)::before{background:var(--fh-pink);box-shadow:0 0 13px rgba(255,46,159,.22)}.st-key-qr_card::before,[data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent--qr)::before{background:var(--fh-cyan);box-shadow:0 0 13px rgba(37,201,232,.20)}.st-key-preview_card::before,[data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent--preview)::before{background:var(--fh-orange);box-shadow:0 0 13px rgba(255,112,67,.20)}
-    [data-testid="stHorizontalBlock"]:has(.st-key-pdf_card):has(.st-key-qr_card){align-items:stretch!important}[data-testid="stHorizontalBlock"]:has(.st-key-pdf_card):has(.st-key-qr_card)>[data-testid="stColumn"]{display:flex!important;align-self:stretch!important}[data-testid="stHorizontalBlock"]:has(.st-key-pdf_card):has(.st-key-qr_card)>[data-testid="stColumn"]>div{width:100%;height:100%}.st-key-pdf_card,.st-key-qr_card{width:100%;height:100%;min-height:268px}.st-key-pdf_card>[data-testid="stVerticalBlock"],.st-key-qr_card>[data-testid="stVerticalBlock"]{height:100%}
+    [data-testid="stHorizontalBlock"]:has(.st-key-pdf_card):has(.st-key-qr_card){align-items:stretch!important}[data-testid="stHorizontalBlock"]:has(.st-key-pdf_card):has(.st-key-qr_card)>[data-testid="stColumn"]{display:flex!important;align-self:stretch!important}[data-testid="stHorizontalBlock"]:has(.st-key-pdf_card):has(.st-key-qr_card)>[data-testid="stColumn"]>div{width:100%;height:100%}.st-key-pdf_card,.st-key-qr_card{width:100%;height:100%;min-height:230px}.st-key-pdf_card>[data-testid="stVerticalBlock"],.st-key-qr_card>[data-testid="stVerticalBlock"]{height:100%;display:flex;flex-direction:column}.st-key-pdf_ready,.st-key-pdf_upload,.st-key-qr_upload{margin-top:auto}
     [data-testid="stVerticalBlockBorderWrapper"]:has(.tool-identity){position:relative;overflow:visible;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
     [data-testid="stVerticalBlockBorderWrapper"]:has(.tool-identity)::after{content:"";position:absolute;left:0;bottom:2px;width:156px;height:2px;border-radius:2px;background:linear-gradient(90deg,#ff2e9f 0 38%,#ff7043 38% 68%,#25c9e8 68% 100%);opacity:.9}
     [data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){position:sticky;top:16px;background:radial-gradient(circle at 94% 5%,rgba(255,112,67,.055),transparent 9rem),linear-gradient(145deg,#18191f,#101116)!important}
-    [data-testid="stFileUploaderDropzone"]{min-height:118px;padding:16px!important;border:1px dashed rgba(37,201,232,.35)!important;border-radius:14px!important;background:rgba(37,201,232,.045)!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:10px!important;text-align:center!important;transition:border-color .16s ease,background .16s ease,transform .16s ease}
+    [data-testid="stFileUploaderDropzone"]{min-height:100px;padding:12px 16px!important;border:1px dashed rgba(37,201,232,.35)!important;border-radius:14px!important;background:rgba(37,201,232,.045)!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:6px!important;text-align:center!important;transition:border-color .16s ease,background .16s ease,transform .16s ease}
+    [data-testid="stFileUploaderDropzone"]::before{content:"Arrastra tu archivo aquí o selecciónalo";color:#fff;font-size:10.5px;font-weight:750}.st-key-pdf_upload [data-testid="stFileUploaderDropzone"]::before{content:"Arrastra tu PDF aquí o selecciónalo"}.st-key-qr_upload [data-testid="stFileUploaderDropzone"]::before{content:"Arrastra una imagen aquí o selecciónala"}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"]::before{content:"Sube una nueva imagen del evento"}
     [data-testid="stFileUploaderDropzone"]:hover{border-color:rgba(37,201,232,.62)!important;background:rgba(37,201,232,.075)!important;transform:translateY(-1px)}
     [data-testid="stFileUploaderDropzone"] svg{width:30px!important;height:30px!important;color:var(--fh-cyan)!important;fill:var(--fh-cyan)!important}[data-testid="stFileUploaderDropzoneInstructions"]{text-align:center!important}[data-testid="stFileUploaderDropzoneInstructions"] span{color:#fff!important;font-weight:750!important}[data-testid="stFileUploaderDropzoneInstructions"] small{display:block!important;margin-top:3px!important;color:var(--fh-muted)!important;white-space:normal!important}
     [data-testid="stFileUploaderDropzone"] button{min-width:168px!important;min-height:40px!important;border-color:rgba(37,201,232,.30)!important;background:rgba(37,201,232,.14)!important;color:var(--fh-cyan)!important;font-size:0!important}[data-testid="stFileUploaderDropzone"] button>*{display:none!important}[data-testid="stFileUploaderDropzone"] button::after{content:"Seleccionar archivo";display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
     [data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent--pdf) [data-testid="stFileUploaderDropzone"] button::after{content:"Seleccionar PDF"}[data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent--qr) [data-testid="stFileUploaderDropzone"] button::after{content:"Cargar fotografía"}
     .st-key-event_image_upload [data-testid="stFileUploaderDropzone"]{border-color:rgba(255,112,67,.34)!important;background:rgba(255,112,67,.045)!important}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"]:hover{border-color:rgba(255,112,67,.60)!important;background:rgba(255,112,67,.075)!important}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"] svg{color:var(--fh-orange)!important;fill:var(--fh-orange)!important}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"] button{border-color:rgba(255,112,67,.30)!important;background:rgba(255,112,67,.14)!important;color:var(--fh-orange)!important}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"] button::after{content:"Cambiar imagen"}
     [data-testid="stFileUploaderFile"]{border:1px solid var(--fh-border);border-radius:12px;background:rgba(255,255,255,.025)}
-    .template-ready-zone{min-height:118px;display:flex;align-items:center;gap:12px;padding:16px;border:1px solid rgba(81,217,138,.25);border-radius:14px;background:rgba(81,217,138,.12);color:#dffbec;font-size:13px;font-weight:700}.template-ready-zone__icon{width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;border-radius:9px;background:rgba(81,217,138,.16);color:var(--fh-green);font-size:18px}.template-ready-zone small{display:block;margin-top:4px;color:rgba(223,251,236,.64);font-size:10px;font-weight:600}
+    .template-ready-zone{min-height:100px;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid rgba(81,217,138,.25);border-radius:14px;background:rgba(81,217,138,.12);color:#dffbec;font-size:13px;font-weight:700}.template-ready-zone__icon{width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;border-radius:9px;background:rgba(81,217,138,.16);color:var(--fh-green);font-size:18px}.template-ready-zone small{display:block;margin-top:4px;color:rgba(223,251,236,.64);font-size:10px;font-weight:600}
     [data-baseweb="input"]>div,[data-baseweb="select"]>div{min-height:42px;border-color:rgba(255,255,255,.09)!important;border-radius:11px!important;background:var(--fh-input)!important}
     [data-baseweb="input"]>div:focus-within,[data-baseweb="select"]>div:focus-within{border-color:rgba(37,201,232,.55)!important;box-shadow:0 0 0 3px rgba(37,201,232,.10)!important}
     [role="radiogroup"] label:has(input:checked){color:var(--fh-cyan)!important}
@@ -195,14 +196,16 @@ with editor_column:
             if pdf_source == "Plantilla Teleticket":
                 if DEFAULT_TEMPLATE_PATH.exists():
                     pdf_data = DEFAULT_TEMPLATE_PATH.read_bytes()
-                    st.markdown(
-                        '<div class="template-ready-zone"><span class="template-ready-zone__icon">✓</span><span>plantilla-teleticket.pdf<small>Plantilla cargada y lista para editar</small></span></div>',
-                        unsafe_allow_html=True,
-                    )
+                    with st.container(key="pdf_ready"):
+                        st.markdown(
+                            '<div class="template-ready-zone"><span class="template-ready-zone__icon">✓</span><span>plantilla-teleticket.pdf<small>Plantilla cargada y lista para editar</small></span></div>',
+                            unsafe_allow_html=True,
+                        )
                 else:
                     st.error("No se encontró la plantilla incluida.")
             else:
-                pdf_file = st.file_uploader("Arrastra tu PDF aquí o selecciónalo", type=["pdf"], key="pdf_file", help="Se conservarán el diseño y los códigos de control.")
+                with st.container(key="pdf_upload"):
+                    pdf_file = st.file_uploader("Arrastra tu PDF aquí o selecciónalo", type=["pdf"], key="pdf_file", help="Se conservarán el diseño y los códigos de control.", label_visibility="collapsed")
                 if pdf_file is not None:
                     pdf_data = pdf_file.getvalue()
                     pdf_name = pdf_file.name
@@ -212,7 +215,8 @@ with editor_column:
         with st.container(border=True, key="qr_card"):
             st.markdown('<div class="card-accent card-accent--qr"></div>', unsafe_allow_html=True)
             section_intro("Fotografía del código QR", "Sube una foto clara del QR físico.")
-            qr_file = st.file_uploader("Arrastra una imagen aquí o selecciónala", type=["jpg", "jpeg", "png", "bmp"], key="qr_file", help="Formatos JPG, PNG, JPEG o BMP.")
+            with st.container(key="qr_upload"):
+                qr_file = st.file_uploader("Arrastra una imagen aquí o selecciónala", type=["jpg", "jpeg", "png", "bmp"], key="qr_file", help="Formatos JPG, PNG, JPEG o BMP.", label_visibility="collapsed")
             if qr_file is not None:
                 st.caption(f"{qr_file.name} · {len(qr_file.getvalue())/(1024*1024):.2f} MB")
 
