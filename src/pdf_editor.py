@@ -163,7 +163,20 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
     # y al final los valores visuales en este orden estable.
     if extended_template and schedule_index >= 0:
         tail = lines[schedule_index + 2:]
-        if len(tail) >= 7:
+        generated_identifiers = (
+            len(tail) >= 8
+            and re.match(r"^N(?:°|�)?\s*\d+$", tail[-2], re.IGNORECASE)
+            and re.fullmatch(r"\d{10,}", re.sub(r"\s+", "", tail[-1]))
+        )
+        if generated_identifiers:
+            # Las plantillas guardadas por este editor añaden los identificadores
+            # al final del stream. Antes de ellos se mantienen, en orden, la
+            # ubicación y los seis campos editables principales.
+            editable_tail = tail[:-2]
+            if len(editable_tail) >= 6:
+                location_parts = editable_tail[:-6]
+                ticket_type, category, event, producer, ruc, price = editable_tail[-6:]
+        elif len(tail) >= 7:
             location_parts = tail[:-7]
             ticket_type, category, _order, event, price, producer, ruc = tail[-7:]
     elif schedule_index >= 0:

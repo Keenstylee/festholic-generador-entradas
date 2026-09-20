@@ -1,10 +1,14 @@
 from io import BytesIO
+from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
 
 from reportlab.pdfgen import canvas
 
 from src.pdf_editor import edit_pdf, edit_ticket_fields, inspect_ticket_fields, parse_page_order
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def sample_pdf(pages=3):
@@ -81,3 +85,21 @@ def test_ticket_event_image_can_be_replaced():
     detected = inspect_ticket_fields(source)
     result = edit_ticket_fields(source, detected, event_image=image_data.getvalue())
     assert len(PdfReader(BytesIO(result)).pages) == 1
+
+
+def test_default_template_contains_bacilos_data():
+    detected = inspect_ticket_fields((ROOT / "assets" / "plantilla-teleticket.pdf").read_bytes())
+    assert detected == {
+        "day": "Viernes",
+        "date": "18 De Septiembre",
+        "time": "2026 / 20:30",
+        "location": "MULTIESPACIO COSTA 21",
+        "event": "BACILOS EN LIMA",
+        "producer": "CONCERTS SPORTS AEI10 S.A.C",
+        "price": "S/ 0.00",
+        "ruc": "20613825607",
+        "ticket_type": "VIP CMR",
+        "row": "",
+        "seat": "",
+        "category": "CORTESIA",
+    }
