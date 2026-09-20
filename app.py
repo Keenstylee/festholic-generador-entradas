@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import base64
+import hashlib
 from pathlib import Path
 import re
 import secrets
@@ -8,9 +8,10 @@ import secrets
 import cv2
 import numpy as np
 import streamlit as st
-import streamlit.components.v1 as components
 
 from src.pdf_editor import edit_ticket_fields, inspect_pdf, inspect_ticket_fields
+from src.pdf_preview import pdf_page_count as count_pdf_pages
+from src.pdf_preview import render_pdf_page as render_page_png
 from src.pipeline import process_image
 from src.reconstruction import encode_png
 
@@ -65,6 +66,16 @@ def section_intro(title: str, description: str) -> None:
     st.markdown(f'<div class="section-intro"><strong>{title}</strong><span>{description}</span></div>', unsafe_allow_html=True)
 
 
+@st.cache_data(show_spinner=False)
+def pdf_page_count(data: bytes) -> int:
+    return count_pdf_pages(data)
+
+
+@st.cache_data(show_spinner=False)
+def render_pdf_page(data: bytes, page_index: int, zoom: float) -> bytes:
+    return render_page_png(data, page_index, zoom)
+
+
 def new_ticket_identity() -> dict[str, str]:
     return {
         "number": str(10_000 + secrets.randbelow(90_000)),
@@ -88,15 +99,29 @@ def render_pdf_preview(data: bytes | None) -> None:
     if not data:
         st.info("Selecciona un PDF para mostrar la vista previa.")
         return
-    encoded = base64.b64encode(data).decode("ascii")
-    components.html(
-        f"""
-        <style>html,body{{margin:0;background:#0b0e15;font-family:system-ui;color:#fff}}.shell{{height:680px;display:grid;grid-template-rows:42px 1fr;border-radius:10px;overflow:hidden;background:#0b0e15}}.bar{{display:flex;align-items:center;justify-content:space-between;padding:0 10px;border-bottom:1px solid rgba(255,255,255,.08);font-size:11px;color:#aeb3c1}}button{{height:28px;padding:0 10px;border:1px solid rgba(255,255,255,.10);border-radius:8px;color:#eef0f6;background:#161a24;cursor:pointer}}button:hover{{background:#202634}}embed{{width:100%;height:100%;border:0;background:#252932}}</style>
-        <div class="shell" id="pdfShell"><div class="bar"><span>Vista del documento</span><button onclick="document.getElementById('pdfShell').requestFullscreen()">Pantalla completa</button></div><embed src="data:application/pdf;base64,{encoded}#toolbar=1&navpanes=0" type="application/pdf"></div>
-        """,
-        height=684,
-        scrolling=False,
-    )
+    try:
+        total_pages = pdf_page_count(data)
+        document_key = hashlib.sha256(data).hexdigest()[:12]
+        page_column, zoom_column = st.columns([1, 1.25])
+        with page_column:
+            page_number = st.selectbox(
+                "Página",
+                options=list(range(1, total_pages + 1)),
+                key=f"preview_page_{document_key}",
+            )
+        with zoom_column:
+            zoom = st.select_slider(
+                "Zoom",
+                options=[1.0, 1.25, 1.5, 1.75, 2.0],
+                value=1.25,
+                format_func=lambda value: f"{round(value * 100)}%",
+                key="preview_zoom",
+            )
+        image = render_pdf_page(data, page_number - 1, zoom)
+        st.image(image, caption=f"Página {page_number} de {total_pages}", use_container_width=True)
+        st.caption("La vista se actualiza automáticamente. Usa el icono de ampliar de la imagen para verla en pantalla completa.")
+    except (ValueError, RuntimeError) as error:
+        st.error(f"No se pudo renderizar la vista previa: {error}", icon="🚨")
 
 
 @st.dialog("Cómo usar el digitalizador")
