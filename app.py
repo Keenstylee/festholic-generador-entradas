@@ -33,13 +33,13 @@ st.markdown(
     [data-testid="stMainBlockContainer"]{position:relative;z-index:1;width:100%;max-width:1480px;padding:18px 18px 44px}
     h1,h2,h3,[data-testid="stHeading"]{font-family:"Space Grotesk","Manrope",sans-serif;letter-spacing:-.03em}
     p,label,[data-testid="stCaptionContainer"]{color:var(--fh-muted)}
-    .tool-identity{display:flex;align-items:center;gap:14px;min-width:0}
-    .tool-icon{width:42px;height:42px;flex:0 0 auto;display:grid;place-items:center;border:1px solid rgba(37,201,232,.28);border-radius:12px;color:var(--fh-cyan);background:rgba(37,201,232,.12)}
-    .tool-icon svg{width:21px;height:21px}.tool-identity h1{margin:0;color:#fff;font-size:23px;line-height:1.15}.tool-identity p{margin:5px 0 0;font-size:11px;line-height:1.4}
+    .tool-identity{display:flex;align-items:center;gap:13px;min-width:0;padding:10px 0 14px}
+    .tool-icon{width:34px;height:42px;flex:0 0 auto;display:grid;place-items:center;color:var(--fh-cyan);background:transparent}
+    .tool-icon svg{width:26px;height:26px}.tool-identity h1{margin:0;color:#fff;font-size:clamp(28px,3vw,34px);font-weight:800;line-height:1.05}.tool-identity p{margin:7px 0 0;color:var(--fh-muted);font-size:12px;line-height:1.5}
     .section-intro{margin-bottom:11px}.section-intro strong{display:block;color:#f8f8fb;font-size:13px}.section-intro span{display:block;margin-top:3px;color:var(--fh-muted);font-size:10px}.preview-marker{height:0;overflow:hidden}
     [data-testid="stVerticalBlockBorderWrapper"]{border:1px solid var(--fh-border)!important;border-radius:18px!important;background:radial-gradient(circle at 94% 5%,rgba(37,201,232,.045),transparent 8rem),linear-gradient(135deg,var(--fh-card),var(--fh-card-deep))!important;box-shadow:0 16px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.035)}
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.tool-identity){position:relative;overflow:hidden;background:linear-gradient(135deg,#17181e,#121319)!important}
-    [data-testid="stVerticalBlockBorderWrapper"]:has(.tool-identity)::after{content:"";position:absolute;left:18px;bottom:0;width:180px;height:2px;border-radius:2px;background:linear-gradient(90deg,#ff2e9f 0 38%,#ff7043 38% 68%,#25c9e8 68% 100%);opacity:.88}
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.tool-identity){position:relative;overflow:visible;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.tool-identity)::after{content:"";position:absolute;left:0;bottom:2px;width:156px;height:2px;border-radius:2px;background:linear-gradient(90deg,#ff2e9f 0 38%,#ff7043 38% 68%,#25c9e8 68% 100%);opacity:.9}
     [data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){position:sticky;top:16px}
     [data-testid="stFileUploaderDropzone"]{min-height:106px;padding:16px!important;border:1px dashed rgba(255,255,255,.16)!important;border-radius:14px!important;background:rgba(15,16,21,.70)!important}
     [data-testid="stFileUploaderDropzone"]:hover{border-color:rgba(37,201,232,.48)!important;background:rgba(37,201,232,.045)!important}[data-testid="stFileUploaderFile"]{border:1px solid var(--fh-border);border-radius:12px;background:rgba(255,255,255,.025)}
@@ -51,7 +51,7 @@ st.markdown(
     .stButton>button[kind="secondary"]:hover{border-color:rgba(37,201,232,.28);color:var(--fh-cyan);background:rgba(37,201,232,.10)}
     .stDownloadButton>button[kind="primary"]{min-height:54px;border:0!important;background:#ff2e9f!important;color:#fff!important;box-shadow:0 10px 24px rgba(255,46,159,.23),inset 0 1px 0 rgba(255,255,255,.18)}
     .stDownloadButton>button[kind="primary"] *,.stDownloadButton>button[kind="primary"] p{color:#fff!important;opacity:1!important}.stDownloadButton>button[kind="primary"]:hover{filter:brightness(1.08);transform:translateY(-1px)}.stButton>button:disabled{opacity:.42}
-    @media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:12px 11px 36px}[data-testid="stHorizontalBlock"]{flex-wrap:wrap}[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:100%!important;width:100%!important}[data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){position:static}.tool-identity h1{font-size:20px}}
+    @media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:12px 11px 36px}[data-testid="stHorizontalBlock"]{flex-wrap:wrap}[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:100%!important;width:100%!important}[data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){position:static}.tool-identity{padding-top:4px}.tool-identity h1{font-size:28px}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -142,7 +142,7 @@ def show_tutorial() -> None:
     """)
 
 
-with st.container(border=True):
+with st.container(border=False):
     title_column, help_column = st.columns([8, 2], vertical_alignment="center")
     with title_column:
         st.markdown("""
