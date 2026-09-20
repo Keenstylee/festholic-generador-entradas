@@ -38,6 +38,7 @@ st.markdown(
     .tool-icon svg{width:26px;height:26px}.tool-identity h1{margin:0;color:#fff;font-size:clamp(28px,3vw,34px);font-weight:800;line-height:1.05}.tool-identity p{margin:7px 0 0;color:var(--fh-muted);font-size:12px;line-height:1.5}
     .section-intro{position:relative;margin:2px 0 15px;padding-left:0}.section-intro strong{display:block;color:#f8f8fb;font-family:"Space Grotesk","Manrope",sans-serif;font-size:16px;font-weight:750;letter-spacing:-.02em}.section-intro span{display:block;margin-top:4px;color:var(--fh-muted);font-size:10.5px;line-height:1.45}
     .section-intro--accent{padding-left:13px;margin-top:4px;margin-bottom:17px}.section-intro--accent::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:3px;border-radius:3px}.section-intro--pink::before{background:var(--fh-pink);box-shadow:0 0 12px rgba(255,46,159,.20)}.section-intro--cyan::before{background:var(--fh-cyan);box-shadow:0 0 12px rgba(37,201,232,.18)}.section-intro--orange::before{background:var(--fh-orange);box-shadow:0 0 12px rgba(255,112,67,.18)}
+    .section-intro--step{display:grid;grid-template-columns:32px minmax(0,1fr);align-items:center;gap:10px;padding-left:0!important}.section-intro--step::before{display:none}.section-intro__number{width:32px;height:32px;display:grid!important;place-items:center;margin:0!important;border:1px solid rgba(37,201,232,.34);border-radius:50%;color:var(--fh-cyan)!important;background:rgba(37,201,232,.11);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);font-size:12px!important;font-weight:900;line-height:1!important}.section-intro--pink .section-intro__number{border-color:rgba(255,46,159,.36);color:#ff70b9!important;background:rgba(255,46,159,.12)}.section-intro--orange .section-intro__number{border-color:rgba(255,112,67,.38);color:#ff9a78!important;background:rgba(255,112,67,.12)}.section-intro__copy{min-width:0}.section-intro__copy span{margin-top:3px}
     .preview-marker,.card-accent,.image-upload-marker{height:0;overflow:hidden}
     [data-testid="stVerticalBlockBorderWrapper"]{position:relative;overflow:hidden;border:1px solid var(--fh-border)!important;border-radius:18px!important;background:radial-gradient(circle at 94% 5%,rgba(37,201,232,.045),transparent 8rem),linear-gradient(135deg,var(--fh-card),var(--fh-card-deep))!important;box-shadow:0 16px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.035)}
     [data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent)::before{content:"";position:absolute;z-index:2;left:0;top:20%;width:3px;height:60%;border-radius:0 3px 3px 0}.st-key-pdf_card::before,[data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent--pdf)::before{background:var(--fh-pink);box-shadow:0 0 13px rgba(255,46,159,.22)}.st-key-qr_card::before,[data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent--qr)::before{background:var(--fh-cyan);box-shadow:0 0 13px rgba(37,201,232,.20)}.st-key-preview_card::before,[data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent--preview)::before{background:var(--fh-orange);box-shadow:0 0 13px rgba(255,112,67,.20)}
@@ -82,10 +83,14 @@ def digitalize_qr(data: bytes):
     return image, process_image(image)
 
 
-def section_intro(title: str, description: str, accent: str | None = None) -> None:
+def section_intro(title: str, description: str, accent: str | None = None, step: int | None = None) -> None:
     accent_class = f" section-intro--accent section-intro--{accent}" if accent else ""
+    step_class = " section-intro--step" if step is not None else ""
+    content = f'<strong>{title}</strong><span>{description}</span>'
+    if step is not None:
+        content = f'<span class="section-intro__number">{step}</span><div class="section-intro__copy">{content}</div>'
     st.markdown(
-        f'<div class="section-intro{accent_class}"><strong>{title}</strong><span>{description}</span></div>',
+        f'<div class="section-intro{accent_class}{step_class}">{content}</div>',
         unsafe_allow_html=True,
     )
 
@@ -195,7 +200,7 @@ with editor_column:
     with source_left:
         with st.container(border=True, key="pdf_card"):
             st.markdown('<div class="card-accent card-accent--pdf"></div>', unsafe_allow_html=True)
-            section_intro("PDF de la entrada", "Usa la plantilla Teleticket o sube un PDF compatible.")
+            section_intro("PDF de la entrada", "Usa la plantilla Teleticket o sube un PDF compatible.", "pink", 1)
             pdf_source = st.radio("Origen del documento", ["Plantilla Teleticket", "Subir otro PDF"], horizontal=True, label_visibility="collapsed", key="pdf_source")
             if pdf_source == "Plantilla Teleticket":
                 if DEFAULT_TEMPLATE_PATH.exists():
@@ -218,7 +223,7 @@ with editor_column:
     with source_right:
         with st.container(border=True, key="qr_card"):
             st.markdown('<div class="card-accent card-accent--qr"></div>', unsafe_allow_html=True)
-            section_intro("Fotografía del código QR", "Sube una foto clara del QR físico.")
+            section_intro("Fotografía del código QR", "Sube una foto clara del QR físico.", "cyan", 2)
             with st.container(key="qr_upload"):
                 qr_file = st.file_uploader("Arrastra una imagen aquí o selecciónala", type=["jpg", "jpeg", "png", "bmp"], key="qr_file", help="Formatos JPG, PNG, JPEG o BMP.", label_visibility="collapsed")
             if qr_file is not None:
@@ -235,7 +240,7 @@ with editor_column:
             qr_error = str(error)
 
         with st.container(border=True):
-            section_intro("Resultado del QR", "Comparación entre la fotografía y la matriz reconstruida.", "cyan")
+            section_intro("Resultado del QR", "Comparación entre la fotografía y la matriz reconstruida.", "cyan", 3)
             if qr_error:
                 st.error(qr_error, icon="🚨")
             elif qr_original is not None and qr_result is not None:
@@ -289,20 +294,20 @@ with editor_column:
 
     if detected is not None:
         with st.container(border=True):
-            section_intro("Información del evento", f"Documento compatible · {pdf_info['pages']} página(s)", "pink")
+            section_intro("Información del evento", f"Documento compatible · {pdf_info['pages']} página(s)", "pink", 4)
             event_col, producer_col, ruc_col = st.columns([1.4, 1, .75])
             with event_col: event = st.text_input("Nombre del evento", detected["event"])
             with producer_col: producer = st.text_input("Productor", detected["producer"])
             with ruc_col: ruc = st.text_input("RUC", detected["ruc"], max_chars=11)
             st.divider()
-            section_intro("Fecha y ubicación", "Información visible en la cabecera de la entrada.", "cyan")
+            section_intro("Fecha y ubicación", "Información visible en la cabecera de la entrada.", "cyan", 5)
             day_col, date_col, time_col, location_col = st.columns([.7, .9, .8, 1.45])
             with day_col: day = st.text_input("Día", detected["day"])
             with date_col: date = st.text_input("Fecha", detected["date"])
             with time_col: time = st.text_input("Hora", detected["time"])
             with location_col: location = st.text_input("Lugar", detected["location"])
             st.divider()
-            section_intro("Información de la entrada", "Sector, ubicación asignada y precio.", "orange")
+            section_intro("Información de la entrada", "Sector, ubicación asignada y precio.", "orange", 6)
             sector_col, category_col = st.columns(2)
             with sector_col: ticket_type = st.text_input("Sector", detected["ticket_type"])
             with category_col: category = st.text_input("Categoría", detected["category"])
@@ -311,7 +316,7 @@ with editor_column:
             with seat_col: seat = st.text_input("Asiento", detected["seat"])
             with price_col: price = st.text_input("Precio", detected["price"])
             st.divider()
-            section_intro("Imagen del evento", "Reemplaza la fotografía o el logo de la plantilla.", "orange")
+            section_intro("Imagen del evento", "Reemplaza la fotografía o el logo de la plantilla.", "orange", 7)
             image_preview_col, image_control_col = st.columns([1, 2.2], vertical_alignment="center")
             with image_control_col:
                 with st.container(key="event_image_upload"):
@@ -338,7 +343,7 @@ with editor_column:
 with preview_column:
     with st.container(border=True, key="preview_card"):
         st.markdown('<div class="preview-marker card-accent card-accent--preview"></div>', unsafe_allow_html=True)
-        section_intro("Vista previa de la entrada", "Así se verá el documento con la información actualizada.")
+        section_intro("Vista previa de la entrada", "Así se verá el documento con la información actualizada.", "orange", 8)
         render_pdf_preview(edited_pdf or pdf_data)
         if generation_error:
             st.error(generation_error, icon="🚨")
