@@ -54,6 +54,10 @@ st.markdown(
     .st-key-event_image_upload [data-testid="stFileUploaderDropzone"]{border-color:rgba(255,112,67,.34)!important;background:rgba(255,112,67,.045)!important}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"]:hover{border-color:rgba(255,112,67,.60)!important;background:rgba(255,112,67,.075)!important}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"] svg{color:var(--fh-orange)!important;fill:var(--fh-orange)!important}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"] button{border-color:rgba(255,112,67,.30)!important;background:rgba(255,112,67,.14)!important;color:var(--fh-orange)!important}.st-key-event_image_upload [data-testid="stFileUploaderDropzone"] button::after{content:"Cambiar imagen"}
     [data-testid="stFileUploaderFile"]{border:1px solid var(--fh-border);border-radius:12px;background:rgba(255,255,255,.025)}
     .template-ready-zone{min-height:100px;display:flex;align-items:center;gap:12px;padding:4px 8px;border:0;background:transparent;color:#dffbec;font-size:13px;font-weight:700}.template-ready-zone__icon{width:30px;height:30px;flex:0 0 auto;display:grid;place-items:center;border-radius:9px;background:rgba(81,217,138,.16);color:var(--fh-green);font-size:18px}.template-ready-zone small{display:block;margin-top:4px;color:rgba(223,251,236,.64);font-size:10px;font-weight:600}
+    .qr-process{position:relative;overflow:hidden;padding:15px;border:1px solid rgba(81,217,138,.25);border-radius:16px;background:radial-gradient(circle at 100% 0,rgba(81,217,138,.11),transparent 8rem),linear-gradient(145deg,#171d1a,#101413);box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 12px 24px rgba(0,0,0,.16)}
+    .qr-process__head{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px}.qr-process__icon{width:36px;height:36px;display:grid;place-items:center;border-radius:11px;background:rgba(81,217,138,.14);color:var(--fh-green)}.qr-process__icon svg{width:20px;height:20px}.qr-process__head strong{display:block;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:13px;line-height:1.2}.qr-process__head small{display:block;margin-top:3px;color:#9fb2a8;font-size:9px;line-height:1.35}.qr-process__count{color:var(--fh-green);font-size:11px;font-weight:850}
+    .qr-process__bar{height:3px;margin:13px 0 14px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}.qr-process__bar span{display:block;width:100%;height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(81,217,138,.55),var(--fh-green))}
+    .qr-process__steps{display:grid;gap:9px}.qr-process__step{position:relative;display:grid;grid-template-columns:24px minmax(0,1fr);align-items:start;gap:9px}.qr-process__step:not(:last-child)::after{content:"";position:absolute;left:11px;top:23px;width:1px;height:calc(100% + 8px);background:rgba(81,217,138,.24)}.qr-process__step>span{position:relative;z-index:1;width:24px;height:24px;display:grid;place-items:center;border:1px solid rgba(81,217,138,.35);border-radius:50%;background:#17241d;color:var(--fh-green);font-size:11px;font-weight:900}.qr-process__step b{display:block;padding-top:1px;color:#edf7f1;font-size:10.5px;line-height:1.25}.qr-process__step small{display:block;margin-top:2px;color:#8fa097;font-size:8.5px;line-height:1.3}.qr-process__approved{display:flex;align-items:center;gap:7px;margin-top:13px;padding-top:11px;border-top:1px solid rgba(255,255,255,.07);color:var(--fh-green);font-size:9px;font-weight:800;letter-spacing:.02em}.qr-process__approved svg{width:14px;height:14px;flex:0 0 auto}
     [data-baseweb="input"]>div,[data-baseweb="select"]>div{min-height:42px;border-color:rgba(255,255,255,.09)!important;border-radius:11px!important;background:var(--fh-input)!important}
     [data-baseweb="input"]>div:focus-within,[data-baseweb="select"]>div:focus-within{border-color:rgba(37,201,232,.55)!important;box-shadow:0 0 0 3px rgba(37,201,232,.10)!important}
     [role="radiogroup"] label:has(input:checked){color:var(--fh-cyan)!important}
@@ -247,7 +251,26 @@ with editor_column:
                         st.image(qr_result.clean, clamp=True, use_container_width=True)
                 with status_column:
                     if qr_ready:
-                        st.success("**QR válido**\n\n✓ QR detectado  \n✓ Reconstrucción completada  \n✓ Lectura exitosa  \n✓ Contenido coincide")
+                        st.markdown(
+                            """
+                            <div class="qr-process">
+                              <div class="qr-process__head">
+                                <span class="qr-process__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></span>
+                                <span><strong>Digitalización completada</strong><small>El código fue reconstruido y validado correctamente.</small></span>
+                                <span class="qr-process__count">4/4</span>
+                              </div>
+                              <div class="qr-process__bar"><span></span></div>
+                              <div class="qr-process__steps">
+                                <div class="qr-process__step"><span>✓</span><div><b>QR detectado</b><small>Patrón y límites localizados</small></div></div>
+                                <div class="qr-process__step"><span>✓</span><div><b>Matriz reconstruida</b><small>Módulos convertidos a formato digital</small></div></div>
+                                <div class="qr-process__step"><span>✓</span><div><b>Lectura validada</b><small>Contenido decodificado correctamente</small></div></div>
+                                <div class="qr-process__step"><span>✓</span><div><b>Coincidencia confirmada</b><small>Original y resultado contienen el mismo código</small></div></div>
+                              </div>
+                              <div class="qr-process__approved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg> RESULTADO APROBADO PARA EL PDF</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
                     elif qr_result.success:
                         st.warning(qr_result.message, icon="⚠️")
                     else:
