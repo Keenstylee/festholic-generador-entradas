@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import base64
 from pathlib import Path
+import re
+import secrets
 
 import cv2
 import numpy as np
@@ -63,6 +65,25 @@ def section_intro(title: str, description: str) -> None:
     st.markdown(f'<div class="section-intro"><strong>{title}</strong><span>{description}</span></div>', unsafe_allow_html=True)
 
 
+def new_ticket_identity() -> dict[str, str]:
+    return {
+        "number": str(10_000 + secrets.randbelow(90_000)),
+        "code": "".join(str(secrets.randbelow(10)) for _ in range(16)),
+    }
+
+
+def rotate_ticket_identity() -> None:
+    """Prepara identificadores nuevos después de entregar cada descarga."""
+    st.session_state.ticket_identity = new_ticket_identity()
+
+
+def safe_pdf_filename(value: str) -> str:
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", value).strip().rstrip(".")
+    if name.lower().endswith(".pdf"):
+        name = name[:-4].strip().rstrip(".")
+    return f"{name or 'entrada_digitalizada'}.pdf"
+
+
 def render_pdf_preview(data: bytes | None) -> None:
     if not data:
         st.info("Selecciona un PDF para mostrar la vista previa.")
@@ -113,6 +134,10 @@ qr_result = None
 qr_error = None
 edited_pdf: bytes | None = None
 generation_error = None
+
+if "ticket_identity" not in st.session_state:
+    st.session_state.ticket_identity = new_ticket_identity()
+ticket_identity = st.session_state.ticket_identity
 
 editor_column, preview_column = st.columns([7, 3], gap="small")
 
@@ -224,7 +249,7 @@ with editor_column:
                 with st.spinner("Actualizando la vista previa…"):
                     edited_pdf = edit_ticket_fields(
                         pdf_data,
-                        {"event":event,"day":day,"date":date,"time":time,"location":location,"ticket_type":ticket_type,"row":row,"seat":seat,"category":category,"producer":producer,"ruc":ruc,"price":price},
+                        {"event":event,"day":day,"date":date,"time":time,"location":location,"ticket_type":ticket_type,"row":row,"seat":seat,"category":category,"producer":producer,"ruc":ruc,"price":price,"qr_number":ticket_identity["number"],"qr_code":ticket_identity["code"]},
                         event_image=event_image.getvalue() if event_image is not None else None,
                         image_mode="cover" if image_mode_label == "Rellenar espacio" else "contain",
                         reconstructed_qr=qr_png,
@@ -240,7 +265,14 @@ with preview_column:
         if generation_error:
             st.error(generation_error, icon="🚨")
         elif edited_pdf is not None:
-            st.download_button("Descargar entrada digitalizada", data=edited_pdf, file_name=f"digitalizada_{pdf_name}", mime="application/pdf", type="primary", icon=":material/download:", use_container_width=True)
+            download_name = st.text_input(
+                "Nombre del PDF",
+                value=f"digitalizada_{Path(pdf_name).stem}",
+                key=f"download_name_{pdf_name}",
+                help="Puedes escribir el nombre con o sin la extensión .pdf.",
+            )
+            st.caption(f"Identificadores de esta descarga: N° {ticket_identity['number']} · {ticket_identity['code']}")
+            st.download_button("Descargar entrada digitalizada", data=edited_pdf, file_name=safe_pdf_filename(download_name), mime="application/pdf", type="primary", icon=":material/download:", use_container_width=True, on_click=rotate_ticket_identity)
             st.caption("Se generará un nuevo PDF sin modificar el archivo original.")
         else:
             st.button("Descargar entrada digitalizada", disabled=True, icon=":material/download:", use_container_width=True)

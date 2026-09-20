@@ -56,9 +56,20 @@ def test_ticket_fields_are_detected_and_replaced():
     assert detected["ruc"] == "20123456789"
     result = edit_ticket_fields(
         source,
-        {**detected, "row": "12", "seat": "34", "price": "S/ 175.00"},
+        {
+            **detected,
+            "row": "12",
+            "seat": "34",
+            "price": "S/ 175.00",
+            "qr_number": "98765",
+            "qr_code": "1234567890123456",
+        },
     )
-    assert len(PdfReader(BytesIO(result)).pages) == 1
+    reader = PdfReader(BytesIO(result))
+    text = reader.pages[0].extract_text()
+    assert len(reader.pages) == 1
+    assert "98765" in text
+    assert "1234567890123456" in text
 
 
 def test_ticket_event_image_can_be_replaced():

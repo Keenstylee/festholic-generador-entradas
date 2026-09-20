@@ -23,6 +23,8 @@ TICKET_FIELDS = {
     "producer": (64, 358, 130, 18, 8, "#999999"),
     "ruc": (64, 382, 125, 18, 8, "#999999"),
     "price": (273, 380, 62, 18, 8, "#999999"),
+    "qr_number": (256, 35, 84, 18, 8.5, "#000000"),
+    "qr_code": (256, 116.5, 84, 18, 8.5, "#000000"),
 }
 
 # Coordenadas de origen de los textos editables en el PDF (x, y desde abajo).
@@ -48,6 +50,14 @@ EDITABLE_TEXT_ORIGINS = (
     (60, -356, 200, -345),   # productor
     (265, -380, 338, -365),  # precio
     (60, -382, 190, -365),   # RUC
+)
+
+EDITABLE_IDENTIFIER_ORIGINS = (
+    (275, -53, 340, -42),     # número superior del QR
+    (255, -127, 340, -114),   # código inferior del QR
+    # Variantes con coordenadas positivas de las plantillas anteriores.
+    (275, 570, 340, 586),
+    (255, 487, 340, 505),
 )
 
 # Área de la ilustración del artista en la cabecera. No invade la fecha ni el QR.
@@ -225,6 +235,18 @@ def _draw_replacement(overlay, page_height: float, spec, lines: list[str]) -> No
             baseline -= font_size + 3
 
 
+def _draw_centered_replacement(overlay, page_height: float, spec, text: str) -> None:
+    """Dibuja los identificadores centrados con respecto a la matriz QR."""
+    x, top, width, height, font_size, foreground = spec
+    bottom = page_height - top - height
+    available = max(1.0, width - 2)
+    measured = pdfmetrics.stringWidth(text, "Helvetica", font_size)
+    size = float(font_size) if measured <= available else max(5.5, font_size * available / measured)
+    overlay.setFillColorRGB(*_hex_color(foreground))
+    overlay.setFont("Helvetica", size)
+    overlay.drawCentredString(x + width / 2, bottom + max(3, (height - size) / 2), text)
+
+
 def _wrap_location(value: str, max_chars: int = 22) -> list[str]:
     """Divide ubicaciones largas en un máximo de dos líneas legibles."""
     words = value.split()
@@ -238,7 +260,7 @@ def _wrap_location(value: str, max_chars: int = 22) -> list[str]:
     return [" ".join(first), " ".join(words)] if words else [" ".join(first)]
 
 
-def _remove_editable_text(page, reader: PdfReader) -> None:
+def _remove_editable_text(page, reader: PdfReader, include_identifiers: bool = False) -> None:
     """Quita solo los textos editables y conserva intacto el arte de fondo."""
     contents = page.get_contents()
     if contents is None:
@@ -246,6 +268,7 @@ def _remove_editable_text(page, reader: PdfReader) -> None:
     stream = ContentStream(contents, reader)
     current_x = current_y = None
     filtered = []
+    editable_origins = EDITABLE_TEXT_ORIGINS + (EDITABLE_IDENTIFIER_ORIGINS if include_identifiers else ())
     for operands, operator in stream.operations:
         if operator == b"BT":
             current_x = current_y = 0.0
@@ -261,7 +284,7 @@ def _remove_editable_text(page, reader: PdfReader) -> None:
             and current_x is not None
             and current_y is not None
             and any(x0 <= current_x <= x1 and y0 <= current_y <= y1
-                    for x0, y0, x1, y1 in EDITABLE_TEXT_ORIGINS)
+                    for x0, y0, x1, y1 in editable_origins)
         )
         if not editable:
             filtered.append((operands, operator))
@@ -392,14 +415,15 @@ def edit_ticket_fields(
     image_mode: str = "contain",
     reconstructed_qr: bytes | None = None,
 ) -> bytes:
-    """Reemplaza campos visibles de la entrada sin tocar el QR ni sus códigos."""
+    """Reemplaza los campos visibles, los identificadores y el QR de la entrada."""
     inspect_ticket_fields(data)
     reader = PdfReader(BytesIO(data))
     writer = PdfWriter()
     first = reader.pages[0]
     width = float(first.mediabox.width)
     height = float(first.mediabox.height)
-    _remove_editable_text(first, reader)
+    replace_identifiers = bool(fields.get("qr_number", "").strip() and fields.get("qr_code", "").strip())
+    _remove_editable_text(first, reader, include_identifiers=replace_identifiers)
     if reconstructed_qr:
         _remove_original_qr_image(first, reader)
 
@@ -427,6 +451,19 @@ def edit_ticket_fields(
             height,
             TICKET_FIELDS[name],
             _wrap_location(value) if name == "location" else [value],
+        )
+    if replace_identifiers:
+        _draw_centered_replacement(
+            overlay,
+            height,
+            TICKET_FIELDS["qr_number"],
+            f"N° {fields.get('qr_number', '').strip()}",
+        )
+        _draw_centered_replacement(
+            overlay,
+            height,
+            TICKET_FIELDS["qr_code"],
+            fields.get("qr_code", "").strip(),
         )
     overlay.save()
     overlay_buffer.seek(0)
