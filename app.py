@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+from io import BytesIO
 from pathlib import Path
 import re
 import secrets
+import zipfile
 
 import cv2
 import numpy as np
@@ -67,7 +69,8 @@ st.markdown(
     .stButton>button[kind="secondary"]:hover{border-color:rgba(37,201,232,.28);color:var(--fh-cyan);background:rgba(37,201,232,.10)}
     .stDownloadButton>button[kind="primary"]{min-height:54px;border:0!important;background:#ff2e9f!important;color:#fff!important;box-shadow:0 10px 24px rgba(255,46,159,.23),inset 0 1px 0 rgba(255,255,255,.18)}
     .stDownloadButton>button[kind="primary"] *,.stDownloadButton>button[kind="primary"] p{color:#fff!important;opacity:1!important}.stDownloadButton>button[kind="primary"]:hover{filter:brightness(1.08);transform:translateY(-1px)}.stButton>button:disabled{opacity:1!important;border-color:rgba(255,255,255,.06)!important;background:#2a2b31!important;color:#777b84!important}
-    @media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:12px 11px 36px}[data-testid="stHorizontalBlock"]{flex-wrap:wrap}[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:100%!important;width:100%!important}[data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){position:static}.tool-identity{padding-top:4px}.tool-identity h1{font-size:28px}}
+    .batch-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 14px}.batch-summary__item{padding:11px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#181920}.batch-summary__item strong{display:block;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:17px}.batch-summary__item span{display:block;margin-top:2px;color:var(--fh-muted);font-size:9px}.batch-summary__item--ok strong{color:var(--fh-green)}.batch-summary__item--error strong{color:var(--fh-orange)}
+    @media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:12px 11px 36px}[data-testid="stHorizontalBlock"]{flex-wrap:wrap}[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:100%!important;width:100%!important}[data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){position:static}.tool-identity{padding-top:4px}.tool-identity h1{font-size:28px}.batch-summary{grid-template-columns:1fr}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -117,11 +120,44 @@ def rotate_ticket_identity() -> None:
     st.session_state.ticket_identity = new_ticket_identity()
 
 
+def qr_file_key(name: str, data: bytes) -> str:
+    """Identificador estable para conservar los números durante cada edición."""
+    digest = hashlib.sha256(data).hexdigest()[:20]
+    return f"{name}:{digest}"
+
+
+def batch_ticket_identity(key: str) -> dict[str, str]:
+    identities = st.session_state.setdefault("batch_ticket_identities", {})
+    if key not in identities:
+        identities[key] = new_ticket_identity()
+    return identities[key]
+
+
+def rotate_batch_identities() -> None:
+    """Hace que el siguiente ZIP utilice identificadores visibles nuevos."""
+    st.session_state.batch_ticket_identities = {}
+
+
 def safe_pdf_filename(value: str) -> str:
     name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", value).strip().rstrip(".")
     if name.lower().endswith(".pdf"):
         name = name[:-4].strip().rstrip(".")
     return f"{name or 'entrada_digitalizada'}.pdf"
+
+
+def safe_filename_stem(value: str, fallback: str = "entradas_digitalizadas") -> str:
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", value).strip().rstrip(".")
+    if name.lower().endswith(".zip"):
+        name = name[:-4].strip().rstrip(".")
+    return name or fallback
+
+
+def build_ticket_zip(entries: list[tuple[str, bytes]]) -> bytes:
+    output = BytesIO()
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for filename, pdf_bytes in entries:
+            archive.writestr(filename, pdf_bytes)
+    return output.getvalue()
 
 
 def render_pdf_preview(data: bytes | None) -> None:
@@ -157,10 +193,11 @@ def render_pdf_preview(data: bytes | None) -> None:
 def show_tutorial() -> None:
     st.markdown("""
     1. Selecciona la plantilla Teleticket o carga un PDF compatible.
-    2. Sube una fotografía clara del QR físico, con los cuatro bordes visibles.
-    3. Espera la validación y revisa que el contenido coincida.
-    4. Actualiza los datos y la imagen del evento.
-    5. Comprueba la vista previa y descarga la entrada digitalizada.
+    2. Elige si generarás una entrada o varias entradas en un lote.
+    3. Sube una o varias fotografías claras de los QR físicos, con los cuatro bordes visibles.
+    4. Espera la validación y revisa los resultados.
+    5. Actualiza los datos y la imagen del evento.
+    6. Descarga el PDF individual o un ZIP con todos los PDF del lote.
 
     El archivo original no se modifica.
     """)
@@ -181,12 +218,16 @@ pdf_data: bytes | None = None
 pdf_name = "plantilla-teleticket.pdf"
 pdf_source = "Plantilla Teleticket"
 qr_file = None
+qr_files = []
 qr_png = None
 qr_ready = False
 qr_original = None
 qr_result = None
 qr_error = None
+qr_items = []
 edited_pdf: bytes | None = None
+batch_entries: list[tuple[str, bytes]] = []
+batch_generation_errors: list[str] = []
 generation_error = None
 
 if "ticket_identity" not in st.session_state:
@@ -223,25 +264,88 @@ with editor_column:
     with source_right:
         with st.container(border=True, key="qr_card"):
             st.markdown('<div class="card-accent card-accent--qr"></div>', unsafe_allow_html=True)
-            section_intro("Fotografía del código QR", "Sube una foto clara del QR físico.", "cyan", 2)
+            section_intro("Fotografía del código QR", "Sube un QR o genera varias entradas en un solo lote.", "cyan", 2)
+            generation_mode = st.radio(
+                "Tipo de generación",
+                ["Una entrada", "Varias entradas"],
+                horizontal=True,
+                key="generation_mode",
+            )
             with st.container(key="qr_upload"):
-                qr_file = st.file_uploader("Arrastra una imagen aquí o selecciónala", type=["jpg", "jpeg", "png", "bmp"], key="qr_file", help="Formatos JPG, PNG, JPEG o BMP.", label_visibility="collapsed")
-            if qr_file is not None:
-                st.caption(f"{qr_file.name} · {len(qr_file.getvalue())/(1024*1024):.2f} MB")
+                if generation_mode == "Una entrada":
+                    qr_file = st.file_uploader("Arrastra una imagen aquí o selecciónala", type=["jpg", "jpeg", "png", "bmp"], key="qr_file", help="Formatos JPG, PNG, JPEG o BMP.", label_visibility="collapsed")
+                    qr_files = [qr_file] if qr_file is not None else []
+                else:
+                    qr_files = st.file_uploader(
+                        "Arrastra varias imágenes aquí o selecciónalas",
+                        type=["jpg", "jpeg", "png", "bmp"],
+                        accept_multiple_files=True,
+                        key="qr_files",
+                        help="Puedes cargar hasta 20 fotografías JPG, PNG, JPEG o BMP.",
+                        label_visibility="collapsed",
+                    )
+                    if len(qr_files) > 20:
+                        st.warning("Se procesarán solamente las primeras 20 fotografías.", icon="⚠️")
+                        qr_files = qr_files[:20]
+            if qr_files:
+                total_size = sum(len(item.getvalue()) for item in qr_files) / (1024 * 1024)
+                label = qr_files[0].name if len(qr_files) == 1 else f"{len(qr_files)} fotografías seleccionadas"
+                st.caption(f"{label} · {total_size:.2f} MB")
 
-    if qr_file is not None:
-        try:
-            with st.spinner("Analizando, reconstruyendo y validando el QR…"):
-                qr_original, qr_result = digitalize_qr(qr_file.getvalue())
-            if qr_result.success and qr_result.validated:
-                qr_png = encode_png(qr_result.clean)
-                qr_ready = True
-        except ValueError as error:
-            qr_error = str(error)
+    if qr_files:
+        seen_qr_values: dict[str, str] = {}
+        with st.spinner(f"Analizando y validando {len(qr_files)} código(s) QR…"):
+            for uploaded_qr in qr_files:
+                data = uploaded_qr.getvalue()
+                item = {
+                    "name": uploaded_qr.name,
+                    "key": qr_file_key(uploaded_qr.name, data),
+                    "original": None,
+                    "result": None,
+                    "png": None,
+                    "error": None,
+                }
+                try:
+                    item["original"], item["result"] = digitalize_qr(data)
+                    if item["result"].success and item["result"].validated:
+                        qr_value = item["result"].validation_text
+                        if qr_value in seen_qr_values:
+                            item["error"] = f"QR duplicado; ya fue cargado como {seen_qr_values[qr_value]}."
+                        else:
+                            seen_qr_values[qr_value] = uploaded_qr.name
+                            item["png"] = encode_png(item["result"].clean)
+                except ValueError as error:
+                    item["error"] = str(error)
+                qr_items.append(item)
+
+        ready_items = [item for item in qr_items if item["png"] is not None]
+        qr_ready = bool(ready_items)
+        if generation_mode == "Una entrada" and ready_items:
+            qr_original = ready_items[0]["original"]
+            qr_result = ready_items[0]["result"]
+            qr_png = ready_items[0]["png"]
+        elif generation_mode == "Una entrada" and qr_items:
+            qr_original = qr_items[0]["original"]
+            qr_result = qr_items[0]["result"]
+            qr_error = qr_items[0]["error"]
 
         with st.container(border=True):
             section_intro("Resultado del QR", "Comparación entre la fotografía y la matriz reconstruida.", "cyan", 3)
-            if qr_error:
+            if generation_mode == "Varias entradas":
+                failed_count = len(qr_items) - len(ready_items)
+                st.markdown(
+                    f'<div class="batch-summary"><div class="batch-summary__item"><strong>{len(qr_items)}</strong><span>QR cargados</span></div><div class="batch-summary__item batch-summary__item--ok"><strong>{len(ready_items)}</strong><span>Listos para generar</span></div><div class="batch-summary__item batch-summary__item--error"><strong>{failed_count}</strong><span>Requieren revisión</span></div></div>',
+                    unsafe_allow_html=True,
+                )
+                for index, item in enumerate(qr_items, start=1):
+                    if item["png"] is not None:
+                        st.success(f"{index:02d}. {item['name']} · QR reconstruido y validado", icon="✅")
+                    else:
+                        message = item["error"] or (item["result"].message if item["result"] is not None else "No se pudo validar el QR.")
+                        st.error(f"{index:02d}. {item['name']} · {message}", icon="🚨")
+                if failed_count:
+                    st.caption("Los archivos que requieren revisión no se incluirán en el ZIP.")
+            elif qr_error:
                 st.error(qr_error, icon="🚨")
             elif qr_original is not None and qr_result is not None:
                 original_column, arrow_column, result_column, status_column = st.columns([1.15, .25, 1.15, 1.6], vertical_alignment="center")
@@ -328,17 +432,45 @@ with editor_column:
                 else: st.caption("Sin imagen nueva")
 
         if qr_ready:
-            try:
-                with st.spinner("Actualizando la vista previa…"):
-                    edited_pdf = edit_ticket_fields(
-                        pdf_data,
-                        {"event":event,"day":day,"date":date,"time":time,"location":location,"ticket_type":ticket_type,"row":row,"seat":seat,"category":category,"producer":producer,"ruc":ruc,"price":price,"qr_number":ticket_identity["number"],"qr_code":ticket_identity["code"]},
-                        event_image=event_image.getvalue() if event_image is not None else None,
-                        image_mode="cover" if image_mode_label == "Rellenar espacio" else "contain",
-                        reconstructed_qr=qr_png,
-                    )
-            except (ValueError, RuntimeError) as error:
-                generation_error = str(error)
+            common_fields = {
+                "event": event, "day": day, "date": date, "time": time,
+                "location": location, "ticket_type": ticket_type, "row": row,
+                "seat": seat, "category": category, "producer": producer,
+                "ruc": ruc, "price": price,
+            }
+            event_image_data = event_image.getvalue() if event_image is not None else None
+            image_mode = "cover" if image_mode_label == "Rellenar espacio" else "contain"
+            if generation_mode == "Una entrada":
+                try:
+                    with st.spinner("Actualizando la vista previa…"):
+                        fields = {**common_fields, "qr_number": ticket_identity["number"], "qr_code": ticket_identity["code"]}
+                        edited_pdf = edit_ticket_fields(
+                            pdf_data,
+                            fields,
+                            event_image=event_image_data,
+                            image_mode=image_mode,
+                            reconstructed_qr=qr_png,
+                        )
+                except (ValueError, RuntimeError) as error:
+                    generation_error = str(error)
+            else:
+                with st.spinner(f"Generando {len(ready_items)} entrada(s) para el ZIP…"):
+                    for item in ready_items:
+                        identity = batch_ticket_identity(item["key"])
+                        fields = {**common_fields, "qr_number": identity["number"], "qr_code": identity["code"]}
+                        try:
+                            generated_pdf = edit_ticket_fields(
+                                pdf_data,
+                                fields,
+                                event_image=event_image_data,
+                                image_mode=image_mode,
+                                reconstructed_qr=item["png"],
+                            )
+                            batch_entries.append((item["key"], generated_pdf))
+                        except (ValueError, RuntimeError) as error:
+                            batch_generation_errors.append(f"{item['name']}: {error}")
+                if batch_entries:
+                    edited_pdf = batch_entries[0][1]
 
 with preview_column:
     with st.container(border=True, key="preview_card"):
@@ -347,6 +479,33 @@ with preview_column:
         render_pdf_preview(edited_pdf or pdf_data)
         if generation_error:
             st.error(generation_error, icon="🚨")
+        elif generation_mode == "Varias entradas" and batch_entries:
+            base_name = st.text_input(
+                "Nombre base de los PDF",
+                value=f"digitalizadas_{Path(pdf_name).stem}",
+                key=f"batch_download_name_{pdf_name}",
+                help="Los archivos se numerarán automáticamente: nombre-001.pdf, nombre-002.pdf…",
+            )
+            safe_base = safe_filename_stem(base_name)
+            numbered_entries = [
+                (f"{safe_base}-{index:03d}.pdf", pdf_bytes)
+                for index, (_, pdf_bytes) in enumerate(batch_entries, start=1)
+            ]
+            zip_data = build_ticket_zip(numbered_entries)
+            st.caption(f"El ZIP contiene {len(numbered_entries)} PDF independientes. La vista previa corresponde a la primera entrada.")
+            if batch_generation_errors:
+                st.warning(f"{len(batch_generation_errors)} entrada(s) no pudieron generarse y fueron excluidas del ZIP.", icon="⚠️")
+            st.download_button(
+                "Descargar entradas en ZIP",
+                data=zip_data,
+                file_name=f"{safe_base}.zip",
+                mime="application/zip",
+                type="primary",
+                icon=":material/folder_zip:",
+                use_container_width=True,
+                on_click=rotate_batch_identities,
+            )
+            st.caption("Cada PDF conserva el QR reconstruido correspondiente y utiliza identificadores únicos.")
         elif edited_pdf is not None:
             download_name = st.text_input(
                 "Nombre del PDF",
@@ -358,5 +517,6 @@ with preview_column:
             st.download_button("Descargar entrada digitalizada", data=edited_pdf, file_name=safe_pdf_filename(download_name), mime="application/pdf", type="primary", icon=":material/download:", use_container_width=True, on_click=rotate_ticket_identity)
             st.caption("Se generará un nuevo PDF sin modificar el archivo original.")
         else:
-            st.button("Descargar entrada digitalizada", disabled=True, icon=":material/download:", use_container_width=True)
-            st.caption("Selecciona el PDF y valida el QR para habilitar la descarga.")
+            disabled_label = "Descargar entradas en ZIP" if generation_mode == "Varias entradas" else "Descargar entrada digitalizada"
+            st.button(disabled_label, disabled=True, icon=":material/download:", use_container_width=True)
+            st.caption("Selecciona el PDF y valida al menos un QR para habilitar la descarga.")
