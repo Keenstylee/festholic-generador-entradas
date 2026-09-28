@@ -2,9 +2,13 @@ from __future__ import annotations
 
 import hashlib
 from io import BytesIO
+import json
 from pathlib import Path
 import re
 import secrets
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+import uuid
 import zipfile
 
 import cv2
@@ -20,6 +24,7 @@ from src.reconstruction import encode_png
 
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_TEMPLATE_PATH = APP_DIR / "assets" / "plantilla-teleticket.pdf"
+FESTHOLIC_GENERATION_ENDPOINT = "https://festholic.com/api/digitalizer/generation"
 
 st.set_page_config(page_title="Digitalizador de entradas | Festholic", page_icon="🎟️", layout="wide")
 
@@ -136,6 +141,45 @@ def batch_ticket_identity(key: str) -> dict[str, str]:
 def rotate_batch_identities() -> None:
     """Hace que el siguiente ZIP utilice identificadores visibles nuevos."""
     st.session_state.batch_ticket_identities = {}
+
+
+def festholic_tracking_token() -> str:
+    value = st.query_params.get("festholic_token", "")
+    return str(value[0] if isinstance(value, list) and value else value or "")
+
+
+def register_generation(entry_count: int, mode: str, event_id: str) -> bool:
+    """Registra la descarga únicamente cuando existe una sesión firmada por Festholic."""
+    token = festholic_tracking_token()
+    if not token:
+        return False
+    payload = json.dumps({
+        "token": token,
+        "eventId": event_id,
+        "entryCount": entry_count,
+        "mode": mode,
+    }).encode("utf-8")
+    request = Request(
+        FESTHOLIC_GENERATION_ENDPOINT,
+        data=payload,
+        headers={"Content-Type": "application/json", "User-Agent": "Festholic-Digitalizer/1.0"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=5) as response:
+            return 200 <= response.status < 300
+    except (HTTPError, URLError, TimeoutError, ValueError):
+        return False
+
+
+def complete_download(entry_count: int, mode: str) -> None:
+    event_id = st.session_state.setdefault("download_event_id", str(uuid.uuid4()))
+    st.session_state.last_generation_tracked = register_generation(entry_count, mode, event_id)
+    st.session_state.download_event_id = str(uuid.uuid4())
+    if mode == "batch":
+        rotate_batch_identities()
+    else:
+        rotate_ticket_identity()
 
 
 def safe_pdf_filename(value: str) -> str:
@@ -503,7 +547,8 @@ with preview_column:
                 type="primary",
                 icon=":material/folder_zip:",
                 use_container_width=True,
-                on_click=rotate_batch_identities,
+                on_click=complete_download,
+                args=(len(numbered_entries), "batch"),
             )
             st.caption("Cada PDF conserva el QR reconstruido correspondiente y utiliza identificadores únicos.")
         elif edited_pdf is not None:
@@ -514,7 +559,7 @@ with preview_column:
                 help="Puedes escribir el nombre con o sin la extensión .pdf.",
             )
             st.caption(f"Identificadores de esta descarga: N° {ticket_identity['number']} · {ticket_identity['code']}")
-            st.download_button("Descargar entrada digitalizada", data=edited_pdf, file_name=safe_pdf_filename(download_name), mime="application/pdf", type="primary", icon=":material/download:", use_container_width=True, on_click=rotate_ticket_identity)
+            st.download_button("Descargar entrada digitalizada", data=edited_pdf, file_name=safe_pdf_filename(download_name), mime="application/pdf", type="primary", icon=":material/download:", use_container_width=True, on_click=complete_download, args=(1, "single"))
             st.caption("Se generará un nuevo PDF sin modificar el archivo original.")
         else:
             disabled_label = "Descargar entradas en ZIP" if generation_mode == "Varias entradas" else "Descargar entrada digitalizada"
