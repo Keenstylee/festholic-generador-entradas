@@ -23,7 +23,10 @@ from src.reconstruction import encode_png
 
 
 APP_DIR = Path(__file__).resolve().parent
-DEFAULT_TEMPLATE_PATH = APP_DIR / "assets" / "plantilla-teleticket.pdf"
+DEFAULT_TEMPLATE_PATHS = {
+    "Plantilla Teleticket": APP_DIR / "assets" / "plantilla-teleticket.pdf",
+    "Plantilla Ticketmaster": APP_DIR / "assets" / "plantilla-ticketmaster.pdf",
+}
 FESTHOLIC_GENERATION_ENDPOINT = "https://festholic.com/api/digitalizer/generation"
 
 st.set_page_config(page_title="Digitalizador de entradas | Festholic", page_icon="🎟️", layout="wide")
@@ -285,14 +288,22 @@ with editor_column:
     with source_left:
         with st.container(border=True, key="pdf_card"):
             st.markdown('<div class="card-accent card-accent--pdf"></div>', unsafe_allow_html=True)
-            section_intro("PDF de la entrada", "Usa la plantilla Teleticket o sube un PDF compatible.", "pink", 1)
-            pdf_source = st.radio("Origen del documento", ["Plantilla Teleticket", "Subir otro PDF"], horizontal=True, label_visibility="collapsed", key="pdf_source")
-            if pdf_source == "Plantilla Teleticket":
-                if DEFAULT_TEMPLATE_PATH.exists():
-                    pdf_data = DEFAULT_TEMPLATE_PATH.read_bytes()
+            section_intro("PDF de la entrada", "Usa una plantilla incluida o sube un PDF compatible.", "pink", 1)
+            pdf_source = st.radio(
+                "Origen del documento",
+                ["Plantilla Teleticket", "Plantilla Ticketmaster", "Subir otro PDF"],
+                horizontal=True,
+                label_visibility="collapsed",
+                key="pdf_source",
+            )
+            if pdf_source in DEFAULT_TEMPLATE_PATHS:
+                template_path = DEFAULT_TEMPLATE_PATHS[pdf_source]
+                if template_path.exists():
+                    pdf_data = template_path.read_bytes()
+                    pdf_name = template_path.name
                     with st.container(key="pdf_ready"):
                         st.markdown(
-                            '<div class="template-ready-zone"><span class="template-ready-zone__icon">✓</span><span>plantilla-teleticket.pdf<small>Plantilla cargada y lista para editar</small></span></div>',
+                            f'<div class="template-ready-zone"><span class="template-ready-zone__icon">✓</span><span>{template_path.name}<small>Plantilla cargada y lista para editar</small></span></div>',
                             unsafe_allow_html=True,
                         )
                 else:

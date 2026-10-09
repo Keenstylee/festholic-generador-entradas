@@ -5,7 +5,13 @@ from pypdf import PdfReader, PdfWriter
 
 from reportlab.pdfgen import canvas
 
-from src.pdf_editor import edit_pdf, edit_ticket_fields, inspect_ticket_fields, parse_page_order
+from src.pdf_editor import (
+    detect_ticket_template,
+    edit_pdf,
+    edit_ticket_fields,
+    inspect_ticket_fields,
+    parse_page_order,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,3 +109,38 @@ def test_default_template_contains_bacilos_data():
         "seat": "",
         "category": "CORTESIA",
     }
+
+
+def test_ticketmaster_template_is_detected_and_editable():
+    source = (ROOT / "assets" / "plantilla-ticketmaster.pdf").read_bytes()
+    assert detect_ticket_template(source) == "ticketmaster"
+    detected = inspect_ticket_fields(source)
+    assert detected == {
+        "day": "Domingo",
+        "date": "28/06/2026",
+        "time": "20:00HS",
+        "location": "PARQUE DE LA EXPOSICION",
+        "event": "MAGNETO REGRESA",
+        "producer": "TOP ENTERTAINMENT SAC",
+        "price": "S/. 0.00",
+        "ruc": "20614657627",
+        "ticket_type": "VIP B",
+        "row": "7",
+        "seat": "74",
+        "category": "CORTESIA",
+    }
+    result = edit_ticket_fields(
+        source,
+        {
+            **detected,
+            "event": "EVENTO DE PRUEBA",
+            "row": "12",
+            "seat": "34",
+            "qr_number": "12345678",
+            "qr_code": "98765432109876",
+        },
+    )
+    text = PdfReader(BytesIO(result)).pages[0].extract_text()
+    assert "EVENTO DE PRUEBA" in text
+    assert "Fila: 12 - Asiento: 34" in text
+    assert "98765432109876" in text

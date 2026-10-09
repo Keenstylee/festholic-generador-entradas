@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from io import BytesIO
+from datetime import datetime
+import json
 import re
 
 from PIL import Image, ImageOps
@@ -11,7 +13,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 
-TICKET_FIELDS = {
+TELETICKET_FIELDS = {
     # x, top, width, height, font size, text color
     "schedule": (145, 52, 105, 42, 9, "#ffffff"),
     "location": (145, 94, 105, 24, 9, "#ffffff"),
@@ -27,9 +29,28 @@ TICKET_FIELDS = {
     "qr_code": (256, 116.5, 84, 18, 8.5, "#000000"),
 }
 
+TICKETMASTER_FIELDS = {
+    # Coordenadas físicas A4: x, distancia superior, ancho, alto, tamaño y color.
+    "schedule": (29, 224, 150, 34, 8.5, "#ffffff"),
+    "location": (29, 165, 150, 48, 8.5, "#ffffff"),
+    "ticket_type": (208, 132, 272, 19, 9.5, "#111111"),
+    "row": (0, 0, 0, 0, 1, "#111111"),
+    "seat": (0, 0, 0, 0, 1, "#111111"),
+    "category": (208, 183, 145, 19, 8.5, "#111111"),
+    "event": (208, 101, 265, 22, 9.5, "#111111"),
+    "event_left": (29, 139, 150, 22, 9, "#ffffff"),
+    "producer": (107, 760, 430, 18, 7.5, "#ffffff"),
+    "ruc": (0, 0, 0, 0, 1, "#111111"),
+    "price": (208, 216, 110, 20, 8.5, "#111111"),
+    "qr_number": (119, 273, 70, 19, 8.5, "#ffffff"),
+    "purchase_number": (27, 273, 70, 19, 8.5, "#ffffff"),
+    "qr_code": (480, 181, 96, 18, 8, "#111111"),
+    "detail": (208, 153, 275, 22, 8.5, "#111111"),
+}
+
 # Coordenadas de origen de los textos editables en el PDF (x, y desde abajo).
 # Se eliminan los operadores de texto en estas áreas, sin pintar el fondo.
-EDITABLE_TEXT_ORIGINS = (
+TELETICKET_EDITABLE_TEXT_ORIGINS = (
     # Plantillas anteriores, con coordenadas de texto positivas.
     (140, 510, 255, 570),  # día, fecha, hora y ubicación
     (15, 378, 265, 390),   # sector / tipo de entrada
@@ -52,7 +73,7 @@ EDITABLE_TEXT_ORIGINS = (
     (60, -382, 190, -365),   # RUC
 )
 
-EDITABLE_IDENTIFIER_ORIGINS = (
+TELETICKET_EDITABLE_IDENTIFIER_ORIGINS = (
     (275, -53, 340, -42),     # número superior del QR
     (255, -127, 340, -114),   # código inferior del QR
     # Variantes con coordenadas positivas de las plantillas anteriores.
@@ -60,13 +81,55 @@ EDITABLE_IDENTIFIER_ORIGINS = (
     (255, 487, 340, 505),
 )
 
-# Área de la ilustración del artista en la cabecera. No invade la fecha ni el QR.
-EVENT_IMAGE_AREA = (0, 33, 136, 101)
-# Margen interior para que el logo no ocupe por completo la cabecera.
-EVENT_IMAGE_PADDING = 12
-# El QR reconstruido se desplaza ligeramente a la derecha para que el área
-# negra quede centrada con el número superior y el código inferior.
-QR_IMAGE_AREA = (266.5, 52, 62, 62)
+TICKETMASTER_EDITABLE_TEXT_ORIGINS = (
+    (20, 160, 190, 310),     # evento, lugar y fecha en la columna azul
+    (250, 115, 720, 295),    # evento, sector, detalle, categoría, precios y código
+    (120, 995, 760, 1020),   # productor, RUC y dirección del pie
+)
+TICKETMASTER_EDITABLE_IDENTIFIER_ORIGINS = (
+    (140, 330, 230, 365),    # número de ticket
+    (620, 225, 760, 255),    # código inferior del QR
+)
+
+TEMPLATE_PROFILES = {
+    "teleticket": {
+        "fields": TELETICKET_FIELDS,
+        "editable": TELETICKET_EDITABLE_TEXT_ORIGINS,
+        "identifiers": TELETICKET_EDITABLE_IDENTIFIER_ORIGINS,
+        "event_images": ((0, 33, 136, 101, 12, "#4215a3"),),
+        "qr_area": (266.5, 52, 62, 62),
+        "qr_clear": (256, 52, 84, 68),
+        "number_prefix": "N° ",
+        "clear_rects": (),
+        "identifier_clear_rects": (),
+    },
+    "ticketmaster": {
+        "fields": TICKETMASTER_FIELDS,
+        "editable": TICKETMASTER_EDITABLE_TEXT_ORIGINS,
+        "identifiers": TICKETMASTER_EDITABLE_IDENTIFIER_ORIGINS,
+        "event_images": (
+            (8, 14, 578, 49, 4, "#000000"),
+            (298, 307, 278, 204, 0, "#000000"),
+        ),
+        "qr_area": (493, 99, 70, 70),
+        "qr_clear": (482, 93, 92, 110),
+        "number_prefix": "",
+        "clear_rects": (
+            (20, 134, 165, 28, "#1179e9"),
+            (20, 162, 165, 45, "#1179e9"),
+            (20, 227, 165, 34, "#1179e9"),
+            (204, 98, 275, 37, "#ffffff"),
+            (204, 125, 280, 55, "#ffffff"),
+            (204, 182, 150, 23, "#ffffff"),
+            (204, 214, 120, 30, "#ffffff"),
+            (100, 757, 460, 23, "#026cdf"),
+        ),
+        "identifier_clear_rects": (
+            (20, 272, 77, 22, "#1179e9"),
+            (106, 272, 79, 22, "#1179e9"),
+        ),
+    },
+}
 
 
 def inspect_pdf(data: bytes) -> dict:
@@ -79,24 +142,116 @@ def inspect_pdf(data: bytes) -> dict:
     }
 
 
-def inspect_ticket_fields(data: bytes) -> dict[str, str]:
-    """Extrae los datos visibles de una entrada Teleticket compatible."""
+def detect_ticket_template(data: bytes) -> str:
+    """Identifica el perfil visual sin depender del nombre del archivo."""
     reader = PdfReader(BytesIO(data))
     if reader.is_encrypted:
         raise ValueError("El PDF está protegido con contraseña.")
     if not reader.pages:
         raise ValueError("El PDF no contiene páginas.")
+    metadata_template = str((reader.metadata or {}).get("/FestholicTemplate", "")).casefold()
+    if metadata_template in TEMPLATE_PROFILES:
+        return metadata_template
     page = reader.pages[0]
     width = float(page.mediabox.width)
     height = float(page.mediabox.height)
     text = page.extract_text() or ""
-    if not (330 <= width <= 350 and 615 <= height <= 635 and "Sector" in text and "Asiento" in text):
-        raise ValueError(
-            "Este editor visual está preparado para entradas Teleticket con el formato del ejemplo. "
-            "El PDF cargado tiene otra plantilla."
-        )
+    normalized = text.casefold()
+    if 330 <= width <= 350 and 615 <= height <= 635 and "sector" in normalized and "asiento" in normalized:
+        return "teleticket"
+    if (
+        585 <= width <= 605
+        and 830 <= height <= 850
+        and "ticketmaster" in normalized
+        and "seccion:" in normalized
+        and "ticket" in normalized
+    ):
+        return "ticketmaster"
+    raise ValueError(
+        "El PDF no coincide con las plantillas compatibles de Teleticket o Ticketmaster."
+    )
 
+
+def _inspect_ticketmaster_fields(lines: list[str], text: str) -> dict[str, str]:
+    flat_text = " ".join(lines)
+    detail = re.search(
+        r"Secci[oó]n:\s*(.*?)\s*-\s*Fila:\s*(.*?)\s*-\s*Asiento:\s*([^\s]+)",
+        flat_text,
+        re.IGNORECASE,
+    )
+    schedule = re.search(r"(\d{2}/\d{2}/\d{4})\s+([^\s]+)", flat_text)
+    producer_match = re.search(
+        r"([^\n]+?)\s*-\s*Ruc\s*:\s*(\d{11})",
+        text,
+        re.IGNORECASE,
+    )
+    price_match = re.search(r"S/\.\s*[\d.,]+", flat_text, re.IGNORECASE)
+    date_value = schedule.group(1) if schedule else ""
+    day = ""
+    if date_value:
+        weekdays = ("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo")
+        try:
+            day = weekdays[datetime.strptime(date_value, "%d/%m/%Y").weekday()]
+        except ValueError:
+            pass
+
+    date_index = next((i for i, line in enumerate(lines) if date_value and date_value in line), -1)
+    venue_parts: list[str] = []
+    for line in lines[1:date_index if date_index >= 0 else 1]:
+        if line.upper() == line and re.search(r"[A-ZÁÉÍÓÚÑ]", line):
+            venue_parts.append(line)
+        else:
+            break
+
+    category = ""
+    if detail:
+        detail_index = next((i for i, line in enumerate(lines) if "Seccion:" in line or "Sección:" in line), -1)
+        for line in lines[detail_index + 1:] if detail_index >= 0 else []:
+            if re.fullmatch(r"[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s-]*", line) and line not in {"COMPRA", "TICKET"}:
+                category = line
+                break
+
+    return {
+        "day": day,
+        "date": date_value,
+        "time": schedule.group(2) if schedule else "",
+        "location": " ".join(venue_parts),
+        "event": lines[0] if lines else "",
+        "producer": producer_match.group(1).strip() if producer_match else "",
+        "price": price_match.group(0) if price_match else "",
+        "ruc": producer_match.group(2) if producer_match else "",
+        "ticket_type": detail.group(1).strip() if detail else "",
+        "row": detail.group(2).strip() if detail else "",
+        "seat": detail.group(3).strip() if detail else "",
+        "category": category,
+    }
+
+
+def inspect_ticket_fields(data: bytes) -> dict[str, str]:
+    """Extrae los datos visibles de una entrada Teleticket o Ticketmaster."""
+    reader = PdfReader(BytesIO(data))
+    if reader.is_encrypted:
+        raise ValueError("El PDF está protegido con contraseña.")
+    if not reader.pages:
+        raise ValueError("El PDF no contiene páginas.")
+    serialized_fields = (reader.metadata or {}).get("/FestholicFields")
+    if serialized_fields:
+        try:
+            stored_fields = json.loads(str(serialized_fields))
+            expected = {
+                "day", "date", "time", "location", "event", "producer", "price",
+                "ruc", "ticket_type", "row", "seat", "category",
+            }
+            if expected.issubset(stored_fields):
+                return {name: str(stored_fields[name]) for name in expected}
+        except (TypeError, ValueError, json.JSONDecodeError):
+            pass
+    template = detect_ticket_template(data)
+    page = reader.pages[0]
+    text = page.extract_text() or ""
     lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if template == "ticketmaster":
+        return _inspect_ticketmaster_fields(lines, text)
 
     def labeled_value(label: str) -> str:
         prefix = f"{label}:"
@@ -273,7 +428,12 @@ def _wrap_location(value: str, max_chars: int = 22) -> list[str]:
     return [" ".join(first), " ".join(words)] if words else [" ".join(first)]
 
 
-def _remove_editable_text(page, reader: PdfReader, include_identifiers: bool = False) -> None:
+def _remove_editable_text(
+    page,
+    reader: PdfReader,
+    profile: dict,
+    include_identifiers: bool = False,
+) -> None:
     """Quita solo los textos editables y conserva intacto el arte de fondo."""
     contents = page.get_contents()
     if contents is None:
@@ -281,7 +441,7 @@ def _remove_editable_text(page, reader: PdfReader, include_identifiers: bool = F
     stream = ContentStream(contents, reader)
     current_x = current_y = None
     filtered = []
-    editable_origins = EDITABLE_TEXT_ORIGINS + (EDITABLE_IDENTIFIER_ORIGINS if include_identifiers else ())
+    editable_origins = profile["editable"] + (profile["identifiers"] if include_identifiers else ())
     for operands, operator in stream.operations:
         if operator == b"BT":
             current_x = current_y = 0.0
@@ -355,50 +515,49 @@ def _draw_event_image(
     overlay,
     page_height: float,
     image_data: bytes,
+    profile: dict,
     mode: str = "contain",
 ) -> None:
-    """Reemplaza la ilustración superior conservando relación de aspecto."""
-    x, top, width, height = EVENT_IMAGE_AREA
-    bottom = page_height - top - height
-    overlay.setFillColorRGB(*_hex_color("#4215a3"))
-    overlay.rect(x, bottom, width, height, fill=1, stroke=0)
-
-    padding = EVENT_IMAGE_PADDING
-    content_x = x + padding
-    content_bottom = bottom + padding
-    content_width = width - (padding * 2)
-    content_height = height - (padding * 2)
-
+    """Reemplaza las ilustraciones configuradas conservando relación de aspecto."""
     with Image.open(BytesIO(image_data)) as source:
         source = source.convert("RGBA")
-        target_size = (
-            max(1, round(content_width * 4)),
-            max(1, round(content_height * 4)),
-        )
-        if mode == "cover":
-            prepared = ImageOps.fit(source, target_size, method=Image.Resampling.LANCZOS)
-        else:
-            prepared = ImageOps.contain(source, target_size, method=Image.Resampling.LANCZOS)
+        for x, top, width, height, padding, background in profile["event_images"]:
+            bottom = page_height - top - height
+            overlay.setFillColorRGB(*_hex_color(background))
+            overlay.rect(x, bottom, width, height, fill=1, stroke=0)
+            content_x = x + padding
+            content_bottom = bottom + padding
+            content_width = width - (padding * 2)
+            content_height = height - (padding * 2)
+            target_size = (
+                max(1, round(content_width * 4)),
+                max(1, round(content_height * 4)),
+            )
+            if mode == "cover":
+                prepared = ImageOps.fit(source, target_size, method=Image.Resampling.LANCZOS)
+            else:
+                prepared = ImageOps.contain(source, target_size, method=Image.Resampling.LANCZOS)
 
-        png = BytesIO()
-        prepared.save(png, format="PNG")
-        png.seek(0)
-        draw_width = prepared.width / 4
-        draw_height = prepared.height / 4
-        draw_x = content_x + (content_width - draw_width) / 2
-        draw_y = content_bottom + (content_height - draw_height) / 2
-        overlay.drawImage(
-            ImageReader(png), draw_x, draw_y,
-            width=draw_width, height=draw_height,
-            preserveAspectRatio=True, mask="auto",
-        )
+            png = BytesIO()
+            prepared.save(png, format="PNG")
+            png.seek(0)
+            draw_width = prepared.width / 4
+            draw_height = prepared.height / 4
+            draw_x = content_x + (content_width - draw_width) / 2
+            draw_y = content_bottom + (content_height - draw_height) / 2
+            overlay.drawImage(
+                ImageReader(png), draw_x, draw_y,
+                width=draw_width, height=draw_height,
+                preserveAspectRatio=True, mask="auto",
+            )
 
 
-def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes) -> None:
-    x, top, width, height = QR_IMAGE_AREA
+def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes, profile: dict) -> None:
+    x, top, width, height = profile["qr_area"]
     bottom = page_height - top - height
+    clear_x, clear_top, clear_width, clear_height = profile["qr_clear"]
     overlay.setFillColorRGB(1, 1, 1)
-    overlay.rect(256, page_height - 120, 84, 68, fill=1, stroke=0)
+    overlay.rect(clear_x, page_height - clear_top - clear_height, clear_width, clear_height, fill=1, stroke=0)
     try:
         with Image.open(BytesIO(qr_data)) as source:
             qr = source.convert("L")
@@ -421,6 +580,21 @@ def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes) -> None:
         raise ValueError("El QR reconstruido no es una imagen válida.") from exc
 
 
+def _draw_profile_clear_rects(
+    overlay,
+    page_height: float,
+    profile: dict,
+    include_identifiers: bool,
+) -> None:
+    """Limpia zonas planas en plantillas cuyo texto no puede retirarse del stream."""
+    rects = profile.get("clear_rects", ())
+    if include_identifiers:
+        rects += profile.get("identifier_clear_rects", ())
+    for x, top, width, height, color in rects:
+        overlay.setFillColorRGB(*_hex_color(color))
+        overlay.rect(x, page_height - top - height, width, height, fill=1, stroke=0)
+
+
 def edit_ticket_fields(
     data: bytes,
     fields: dict[str, str],
@@ -430,52 +604,79 @@ def edit_ticket_fields(
 ) -> bytes:
     """Reemplaza los campos visibles, los identificadores y el QR de la entrada."""
     inspect_ticket_fields(data)
+    template = detect_ticket_template(data)
+    profile = TEMPLATE_PROFILES[template]
+    ticket_fields = profile["fields"]
     reader = PdfReader(BytesIO(data))
     writer = PdfWriter()
     first = reader.pages[0]
     width = float(first.mediabox.width)
     height = float(first.mediabox.height)
     replace_identifiers = bool(fields.get("qr_number", "").strip() and fields.get("qr_code", "").strip())
-    _remove_editable_text(first, reader, include_identifiers=replace_identifiers)
+    _remove_editable_text(first, reader, profile, include_identifiers=replace_identifiers)
     if reconstructed_qr:
         _remove_original_qr_image(first, reader)
 
     overlay_buffer = BytesIO()
     overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
+    _draw_profile_clear_rects(overlay, height, profile, replace_identifiers)
     if event_image:
         try:
-            _draw_event_image(overlay, height, event_image, image_mode)
+            _draw_event_image(overlay, height, event_image, profile, image_mode)
         except (OSError, ValueError) as exc:
             raise ValueError("La imagen del evento no es válida.") from exc
     if reconstructed_qr:
-        _draw_reconstructed_qr(overlay, height, reconstructed_qr)
+        _draw_reconstructed_qr(overlay, height, reconstructed_qr, profile)
     schedule = [
         f"{fields.get('day', '').strip()}, {fields.get('date', '').strip()}",
         fields.get("time", "").strip(),
     ]
-    _draw_replacement(overlay, height, TICKET_FIELDS["schedule"], schedule)
-    for name in (
-        "location", "ticket_type", "row", "seat", "category", "event",
-        "producer", "ruc", "price",
-    ):
+    _draw_replacement(overlay, height, ticket_fields["schedule"], schedule)
+    names = (
+        ("location", "ticket_type", "category", "event", "price")
+        if template == "ticketmaster"
+        else ("location", "ticket_type", "row", "seat", "category", "event", "producer", "ruc", "price")
+    )
+    for name in names:
         value = fields.get(name, "").strip()
         _draw_replacement(
             overlay,
             height,
-            TICKET_FIELDS[name],
+            ticket_fields[name],
             _wrap_location(value) if name == "location" else [value],
         )
+    if template == "ticketmaster":
+        _draw_replacement(
+            overlay,
+            height,
+            ticket_fields["event_left"],
+            [fields.get("event", "").strip()],
+        )
+        detail = (
+            f"Sección: {fields.get('ticket_type', '').strip()} - "
+            f"Fila: {fields.get('row', '').strip()} - Asiento: {fields.get('seat', '').strip()}"
+        )
+        _draw_replacement(overlay, height, ticket_fields["detail"], [detail])
+        producer_line = f"{fields.get('producer', '').strip()} - RUC: {fields.get('ruc', '').strip()}"
+        _draw_replacement(overlay, height, ticket_fields["producer"], [producer_line])
     if replace_identifiers:
+        if template == "ticketmaster":
+            _draw_centered_replacement(
+                overlay,
+                height,
+                ticket_fields["purchase_number"],
+                fields.get("qr_number", "").strip(),
+            )
         _draw_centered_replacement(
             overlay,
             height,
-            TICKET_FIELDS["qr_number"],
-            f"N° {fields.get('qr_number', '').strip()}",
+            ticket_fields["qr_number"],
+            f"{profile['number_prefix']}{fields.get('qr_number', '').strip()}",
         )
         _draw_centered_replacement(
             overlay,
             height,
-            TICKET_FIELDS["qr_code"],
+            ticket_fields["qr_code"],
             fields.get("qr_code", "").strip(),
         )
     overlay.save()
@@ -485,8 +686,19 @@ def edit_ticket_fields(
     writer.add_page(first)
     for page in reader.pages[1:]:
         writer.add_page(page)
-    if reader.metadata:
-        writer.add_metadata({str(k): str(v) for k, v in reader.metadata.items() if v is not None})
+    metadata = {str(k): str(v) for k, v in (reader.metadata or {}).items() if v is not None}
+    metadata["/FestholicTemplate"] = template
+    metadata["/FestholicFields"] = json.dumps(
+        {
+            name: fields.get(name, "")
+            for name in (
+                "day", "date", "time", "location", "event", "producer", "price",
+                "ruc", "ticket_type", "row", "seat", "category",
+            )
+        },
+        ensure_ascii=False,
+    )
+    writer.add_metadata(metadata)
     output = BytesIO()
     writer.write(output)
     result = output.getvalue()
