@@ -5,6 +5,7 @@ from datetime import datetime
 import json
 import re
 
+import pymupdf
 from PIL import Image, ImageOps
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import ContentStream
@@ -403,6 +404,31 @@ def _draw_replacement(overlay, page_height: float, spec, lines: list[str]) -> No
             baseline -= font_size + 3
 
 
+def _align_to_header(data: bytes, label: str, spec: tuple) -> tuple:
+    """Centra una columna bajo su encabezado ('Fila' / 'Asiento') leído del PDF.
+
+    Si el encabezado no se localiza cerca de la columna esperada, devuelve la
+    especificación original sin cambios.
+    """
+    x, top, width, height, font_size, foreground = spec
+    expected_center = x + width / 2
+    try:
+        with pymupdf.open(stream=data, filetype="pdf") as document:
+            matches = document.load_page(0).search_for(label)
+    except (RuntimeError, ValueError):
+        return spec
+    candidates = [
+        rect for rect in matches
+        if abs((rect.x0 + rect.x1) / 2 - expected_center) <= 30
+        and -10 <= top - rect.y1 <= 70
+    ]
+    if not candidates:
+        return spec
+    header = min(candidates, key=lambda rect: abs((rect.x0 + rect.x1) / 2 - expected_center))
+    center = (header.x0 + header.x1) / 2
+    return (center - width / 2, top, width, height, font_size, foreground)
+
+
 def _draw_centered_replacement(overlay, page_height: float, spec, text: str) -> None:
     """Dibuja los identificadores centrados con respecto a la matriz QR."""
     x, top, width, height, font_size, foreground = spec
@@ -639,12 +665,18 @@ def edit_ticket_fields(
     )
     for name in names:
         value = fields.get(name, "").strip()
-        _draw_replacement(
-            overlay,
-            height,
-            ticket_fields[name],
-            _wrap_location(value) if name == "location" else [value],
-        )
+        if template == "teleticket" and name in {"row", "seat"}:
+            header = "Fila" if name == "row" else "Asiento"
+            _draw_centered_replacement(
+                overlay, height, _align_to_header(data, header, ticket_fields[name]), value
+            )
+        else:
+            _draw_replacement(
+                overlay,
+                height,
+                ticket_fields[name],
+                _wrap_location(value) if name == "location" else [value],
+            )
     if template == "ticketmaster":
         _draw_replacement(
             overlay,

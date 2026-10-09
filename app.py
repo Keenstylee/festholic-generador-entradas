@@ -28,6 +28,7 @@ DEFAULT_TEMPLATE_PATHS = {
     "Plantilla Ticketmaster": APP_DIR / "assets" / "plantilla-ticketmaster.pdf",
 }
 FESTHOLIC_GENERATION_ENDPOINT = "https://festholic.com/api/digitalizer/generation"
+MAX_SEAT_TICKETS = 60
 
 st.set_page_config(page_title="Digitalizador de entradas | Festholic", page_icon="🎟️", layout="wide")
 
@@ -79,6 +80,26 @@ st.markdown(
     .stDownloadButton>button[kind="primary"] *,.stDownloadButton>button[kind="primary"] p{color:#fff!important;opacity:1!important}.stDownloadButton>button[kind="primary"]:hover{filter:brightness(1.08);transform:translateY(-1px)}.stButton>button:disabled{opacity:1!important;border-color:rgba(255,255,255,.06)!important;background:#2a2b31!important;color:#777b84!important}
     .batch-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 14px}.batch-summary__item{padding:11px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#181920}.batch-summary__item strong{display:block;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:17px}.batch-summary__item span{display:block;margin-top:2px;color:var(--fh-muted);font-size:9px}.batch-summary__item--ok strong{color:var(--fh-green)}.batch-summary__item--error strong{color:var(--fh-orange)}
     @media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:12px 11px 36px}[data-testid="stHorizontalBlock"]{flex-wrap:wrap}[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:100%!important;width:100%!important}[data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){position:static}.tool-identity{padding-top:4px}.tool-identity h1{font-size:28px}.batch-summary{grid-template-columns:1fr}}
+    .seat-summary{margin:0 0 10px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#181920}.seat-summary__top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;color:var(--fh-muted);font-size:10.5px}.seat-summary__top b{color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:15px}.seat-summary__ok{color:var(--fh-green)}.seat-summary__bad{color:var(--fh-orange)}.seat-summary__bar{height:3px;margin-top:8px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}.seat-summary__bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(81,217,138,.55),var(--fh-green))}
+    .st-key-seat_slots [class*="st-key-seat_slot_"]{padding:8px 9px 6px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#15161c;gap:.25rem}
+    .st-key-seat_slots [data-testid="stVerticalBlock"]{gap:.5rem}
+    .seat-badge{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:rgba(37,201,232,.12);color:var(--fh-cyan);font-size:11px;font-weight:850}.seat-badge--ok{background:rgba(81,217,138,.18);color:var(--fh-green)}.seat-badge--bad{background:rgba(255,112,67,.18);color:var(--fh-orange)}
+    .seat-note{margin:0 0 0 2px;color:var(--fh-orange);font-size:10px;line-height:1.35}
+    .st-key-seat_slots [data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:6px!important;align-items:center!important}
+    .st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:0!important}
+    .st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1){flex:0 0 32px!important;width:32px!important}
+    .st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex:1 1 0!important;width:auto!important}
+    .st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3),.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 21%!important;width:21%!important}
+    .st-key-seat_slots [data-testid="stFileUploaderDropzone"]{min-height:0!important;padding:3px 6px!important;flex-direction:row!important;gap:6px!important;border-radius:10px!important}.st-key-seat_slots [data-testid="stFileUploaderDropzone"]::before{display:none!important}.st-key-seat_slots [data-testid="stFileUploaderDropzoneInstructions"]{display:none!important}.st-key-seat_slots [data-testid="stFileUploaderDropzone"] svg{display:none!important}
+    .st-key-seat_slots [data-testid="stFileUploaderDropzone"] button{min-width:0!important;width:100%!important;min-height:34px!important}.st-key-seat_slots [data-testid="stFileUploaderDropzone"] button::after{content:"Subir QR"!important}
+    [data-testid="stFileChipDeleteBtn"] button{min-width:30px!important;width:30px!important;min-height:30px!important;padding:0!important;display:inline-flex!important;align-items:center;justify-content:center}[data-testid="stFileChipDeleteBtn"] button::after{content:"✕"!important;font-size:12px!important}
+    .st-key-seat_slots [data-testid="stFileChipDeleteBtn"] button{width:30px!important;min-width:30px!important;min-height:30px!important}.st-key-seat_slots [data-testid="stFileChipDeleteBtn"] button::after{content:"✕"!important;font-size:12px!important}
+    .st-key-seat_slots [data-testid="stFileChips"]{width:100%}.st-key-seat_slots [data-testid="stFileChip"]{width:100%;min-height:34px;padding:0 2px 0 6px!important;background:transparent!important;color:#fff!important;justify-content:space-between}.st-key-seat_slots [data-testid="stFileChip"]>div:first-child{display:none!important}.st-key-seat_slots [data-testid="stFileChipName"]{color:#fff!important;font-size:11px!important;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.st-key-seat_slots [data-testid="stFileChipName"]+div{display:none!important}.st-key-seat_slots [data-testid="stBaseButton-borderlessIcon"]{display:none!important}
+    .st-key-seat_slots [data-baseweb="input"]>div{min-height:36px!important;border-radius:9px!important}.st-key-seat_slots input{padding:0 8px!important;font-size:12.5px!important;text-align:center}
+    .qr-process__more{margin-top:10px}.qr-process__more summary{cursor:pointer;color:#9fb2a8;font-size:10px;font-weight:750;list-style:none}.qr-process__more summary::-webkit-details-marker{display:none}.qr-process__more summary::before{content:"▸ "}.qr-process__more[open] summary::before{content:"▾ "}.qr-process__more .qr-process__steps{margin-top:10px}
+    .st-key-qr_result_card [data-testid="stImage"] img{max-height:240px;object-fit:contain}
+    @media(max-width:900px){.st-key-qr_result_card [data-testid="stHorizontalBlock"]{flex-wrap:wrap!important;gap:6px!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:0!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3){flex:0 0 calc(44% - 4px)!important;width:calc(44% - 4px)!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex:0 0 8%!important;width:8%!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 100%!important;width:100%!important}.qr-process{padding:12px}.st-key-qr_result_card [data-testid="stImage"] img{max-height:170px}}
+    @media(max-width:900px){.batch-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}.batch-summary__item{padding:8px 9px}.batch-summary__item strong{font-size:15px}.batch-summary__item span{font-size:8.5px}.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3),.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 22%!important;width:22%!important}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -92,6 +113,14 @@ def digitalize_qr(data: bytes):
     if image is None:
         raise ValueError("El archivo no pudo interpretarse como una imagen válida.")
     return image, process_image(image)
+
+
+@st.cache_data(show_spinner=False, max_entries=300)
+def build_ticket_pdf(pdf_data: bytes, fields: dict, event_image: bytes | None, image_mode: str, qr_png: bytes) -> bytes:
+    """Genera un PDF y lo guarda en caché: solo se rehacen las entradas que cambian."""
+    return edit_ticket_fields(
+        pdf_data, fields, event_image=event_image, image_mode=image_mode, reconstructed_qr=qr_png
+    )
 
 
 def section_intro(title: str, description: str, accent: str | None = None, step: int | None = None) -> None:
@@ -246,6 +275,8 @@ def show_tutorial() -> None:
     5. Actualiza los datos y la imagen del evento.
     6. Descarga el PDF individual o un ZIP con todos los PDF del lote.
 
+    Si son entradas con asiento, elige "Varias entradas", marca "Son entradas con asiento" e indica la fila y el asiento de cada QR.
+
     El archivo original no se modifica.
     """)
 
@@ -276,6 +307,9 @@ edited_pdf: bytes | None = None
 batch_entries: list[tuple[str, bytes]] = []
 batch_generation_errors: list[str] = []
 generation_error = None
+seat_mode = False
+seat_count = 0
+batch_seat_labels: dict[str, str] = {}
 
 if "ticket_identity" not in st.session_state:
     st.session_state.ticket_identity = new_ticket_identity()
@@ -326,10 +360,27 @@ with editor_column:
                 horizontal=True,
                 key="generation_mode",
             )
+            if generation_mode == "Varias entradas":
+                seat_mode = st.checkbox(
+                    "Son entradas con asiento (fila y asiento distintos)",
+                    key="batch_seat_mode",
+                    help="Podrás indicar la fila y el asiento de cada QR. Si no la marcas, todas las entradas usan la misma fila y asiento.",
+                )
             with st.container(key="qr_upload"):
                 if generation_mode == "Una entrada":
                     qr_file = st.file_uploader("Arrastra una imagen aquí o selecciónala", type=["jpg", "jpeg", "png", "bmp"], key="qr_file", help="Formatos JPG, PNG, JPEG o BMP.", label_visibility="collapsed")
                     qr_files = [qr_file] if qr_file is not None else []
+                elif seat_mode:
+                    seat_count = int(st.number_input(
+                        "Cantidad de entradas",
+                        min_value=1,
+                        max_value=MAX_SEAT_TICKETS,
+                        value=2,
+                        step=1,
+                        key="seat_count",
+                        help=f"Se crea una fila por entrada (máximo {MAX_SEAT_TICKETS}).",
+                    ))
+                    st.caption("Sube el QR de cada entrada y escribe su fila y asiento en la lista de abajo.")
                 else:
                     qr_files = st.file_uploader(
                         "Arrastra varias imágenes aquí o selecciónalas",
@@ -347,7 +398,71 @@ with editor_column:
                 label = qr_files[0].name if len(qr_files) == 1 else f"{len(qr_files)} fotografías seleccionadas"
                 st.caption(f"{label} · {total_size:.2f} MB")
 
-    if qr_files:
+    if seat_mode:
+        seen_qr_values: dict[str, str] = {}
+        with st.container(border=True, key="seat_slots"):
+            section_intro("Entradas con asiento", "Sube el QR de cada entrada e indica su fila y asiento.", "cyan", 3)
+            summary_box = st.empty()
+            for slot in range(1, seat_count + 1):
+                with st.container(key=f"seat_slot_{slot}"):
+                    badge_col, file_col, row_slot_col, seat_slot_col = st.columns([.5, 3, 1, 1], vertical_alignment="center")
+                    badge_box = badge_col.empty()
+                    with file_col:
+                        uploaded_qr = st.file_uploader(
+                            f"QR de la entrada {slot}",
+                            type=["jpg", "jpeg", "png", "bmp"],
+                            key=f"seat_qr_{slot}",
+                            label_visibility="collapsed",
+                        )
+                    with row_slot_col:
+                        slot_row = st.text_input(f"Fila {slot}", key=f"seat_row_{slot}", placeholder="Fila", max_chars=6, label_visibility="collapsed")
+                    with seat_slot_col:
+                        slot_seat = st.text_input(f"Asiento {slot}", key=f"seat_num_{slot}", placeholder="Asiento", max_chars=6, label_visibility="collapsed")
+                    state, note = "empty", ""
+                    if uploaded_qr is not None:
+                        data = uploaded_qr.getvalue()
+                        item = {
+                            "name": f"Entrada {slot:02d}",
+                            "key": qr_file_key(uploaded_qr.name, data),
+                            "original": None, "result": None, "png": None, "error": None,
+                            "row": slot_row, "seat": slot_seat,
+                        }
+                        try:
+                            item["original"], item["result"] = digitalize_qr(data)
+                            if item["result"].success and item["result"].validated:
+                                qr_value = item["result"].validation_text
+                                if qr_value in seen_qr_values:
+                                    item["error"] = f"QR duplicado; ya fue cargado en {seen_qr_values[qr_value]}."
+                                else:
+                                    seen_qr_values[qr_value] = item["name"]
+                                    item["png"] = encode_png(item["result"].clean)
+                        except ValueError as error:
+                            item["error"] = str(error)
+                        qr_items.append(item)
+                        if item["png"] is not None:
+                            state = "ready" if slot_row.strip() and slot_seat.strip() else "pending"
+                        else:
+                            state = "error"
+                            note = item["error"] or (item["result"].message if item["result"] is not None else "No se pudo validar el QR.")
+                    badge_class = {"ready": " seat-badge--ok", "error": " seat-badge--bad"}.get(state, "")
+                    badge_icon = {"ready": "✓", "error": "!"}.get(state, f"{slot:02d}")
+                    badge_box.markdown(f'<div class="seat-badge{badge_class}">{badge_icon}</div>', unsafe_allow_html=True)
+                    if note:
+                        st.markdown(f'<div class="seat-note">{note}</div>', unsafe_allow_html=True)
+
+            ready_items = [item for item in qr_items if item["png"] is not None]
+            qr_ready = bool(ready_items)
+            complete = sum(1 for item in ready_items if item["row"].strip() and item["seat"].strip())
+            failed = len(qr_items) - len(ready_items)
+            progress = round(100 * complete / seat_count) if seat_count else 0
+            issues = f'<span class="seat-summary__bad">{failed} con error</span>' if failed else ""
+            summary_box.markdown(
+                f'<div class="seat-summary"><div class="seat-summary__top"><span><b class="seat-summary__ok">{complete}</b> de {seat_count} listas</span>{issues}</div>'
+                f'<div class="seat-summary__bar"><span style="width:{progress}%"></span></div></div>',
+                unsafe_allow_html=True,
+            )
+
+    elif qr_files:
         seen_qr_values: dict[str, str] = {}
         with st.spinner(f"Analizando y validando {len(qr_files)} código(s) QR…"):
             for uploaded_qr in qr_files:
@@ -384,7 +499,7 @@ with editor_column:
             qr_result = qr_items[0]["result"]
             qr_error = qr_items[0]["error"]
 
-        with st.container(border=True):
+        with st.container(border=True, key="qr_result_card"):
             section_intro("Resultado del QR", "Comparación entre la fotografía y la matriz reconstruida.", "cyan", 3)
             if generation_mode == "Varias entradas":
                 failed_count = len(qr_items) - len(ready_items)
@@ -424,12 +539,12 @@ with editor_column:
                                 <span class="qr-process__count">4/4</span>
                               </div>
                               <div class="qr-process__bar"><span></span></div>
-                              <div class="qr-process__steps">
+                              <details class="qr-process__more"><summary>Ver pasos de validación</summary><div class="qr-process__steps">
                                 <div class="qr-process__step"><span>✓</span><div><b>QR detectado</b><small>Patrón y límites localizados</small></div></div>
                                 <div class="qr-process__step"><span>✓</span><div><b>Matriz reconstruida</b><small>Módulos convertidos a formato digital</small></div></div>
                                 <div class="qr-process__step"><span>✓</span><div><b>Lectura validada</b><small>Contenido decodificado correctamente</small></div></div>
                                 <div class="qr-process__step"><span>✓</span><div><b>Coincidencia confirmada</b><small>Original y resultado contienen el mismo código</small></div></div>
-                              </div>
+                              </div></details>
                               <div class="qr-process__approved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg> RESULTADO APROBADO PARA EL PDF</div>
                             </div>
                             """,
@@ -471,8 +586,8 @@ with editor_column:
             with sector_col: ticket_type = st.text_input("Sector", detected["ticket_type"])
             with category_col: category = st.text_input("Categoría", detected["category"])
             row_col, seat_col, price_col = st.columns(3)
-            with row_col: row = st.text_input("Fila", detected["row"])
-            with seat_col: seat = st.text_input("Asiento", detected["seat"])
+            with row_col: row = st.text_input("Fila", detected["row"], disabled=seat_mode, help="En modo asientos, la fila se indica en cada QR." if seat_mode else None)
+            with seat_col: seat = st.text_input("Asiento", detected["seat"], disabled=seat_mode, help="En modo asientos, el asiento se indica en cada QR." if seat_mode else None)
             with price_col: price = st.text_input("Precio", detected["price"])
             st.divider()
             section_intro("Imagen del evento", "Reemplaza la fotografía o el logo de la plantilla.", "orange", 7)
@@ -499,28 +614,32 @@ with editor_column:
                 try:
                     with st.spinner("Actualizando la vista previa…"):
                         fields = {**common_fields, "qr_number": ticket_identity["number"], "qr_code": ticket_identity["code"]}
-                        edited_pdf = edit_ticket_fields(
-                            pdf_data,
-                            fields,
-                            event_image=event_image_data,
-                            image_mode=image_mode,
-                            reconstructed_qr=qr_png,
-                        )
+                        edited_pdf = build_ticket_pdf(pdf_data, fields, event_image_data, image_mode, qr_png)
                 except (ValueError, RuntimeError) as error:
                     generation_error = str(error)
             else:
                 with st.spinner(f"Generando {len(ready_items)} entrada(s) para el ZIP…"):
+                    used_seats: dict[tuple[str, str], str] = {}
                     for item in ready_items:
                         identity = batch_ticket_identity(item["key"])
                         fields = {**common_fields, "qr_number": identity["number"], "qr_code": identity["code"]}
+                        if seat_mode:
+                            item_row = item.get("row", "").strip()
+                            item_seat = item.get("seat", "").strip()
+                            if not item_row or not item_seat:
+                                batch_generation_errors.append(f"{item['name']}: falta indicar la fila y el asiento.")
+                                continue
+                            if (item_row, item_seat) in used_seats:
+                                batch_generation_errors.append(
+                                    f"{item['name']}: la fila {item_row} y el asiento {item_seat} ya se usaron en {used_seats[(item_row, item_seat)]}."
+                                )
+                                continue
+                            used_seats[(item_row, item_seat)] = item["name"]
+                            fields["row"] = item_row
+                            fields["seat"] = item_seat
+                            batch_seat_labels[item["key"]] = f"-F{safe_filename_stem(item_row, 'x')}-A{safe_filename_stem(item_seat, 'x')}"
                         try:
-                            generated_pdf = edit_ticket_fields(
-                                pdf_data,
-                                fields,
-                                event_image=event_image_data,
-                                image_mode=image_mode,
-                                reconstructed_qr=item["png"],
-                            )
+                            generated_pdf = build_ticket_pdf(pdf_data, fields, event_image_data, image_mode, item["png"])
                             batch_entries.append((item["key"], generated_pdf))
                         except (ValueError, RuntimeError) as error:
                             batch_generation_errors.append(f"{item['name']}: {error}")
@@ -543,13 +662,17 @@ with preview_column:
             )
             safe_base = safe_filename_stem(base_name)
             numbered_entries = [
-                (f"{safe_base}-{index:03d}.pdf", pdf_bytes)
-                for index, (_, pdf_bytes) in enumerate(batch_entries, start=1)
+                (f"{safe_base}-{index:03d}{batch_seat_labels.get(entry_key, '')}.pdf", pdf_bytes)
+                for index, (entry_key, pdf_bytes) in enumerate(batch_entries, start=1)
             ]
             zip_data = build_ticket_zip(numbered_entries)
             st.caption(f"El ZIP contiene {len(numbered_entries)} PDF independientes. La vista previa corresponde a la primera entrada.")
             if batch_generation_errors:
-                st.warning(f"{len(batch_generation_errors)} entrada(s) no pudieron generarse y fueron excluidas del ZIP.", icon="⚠️")
+                st.warning(
+                    f"{len(batch_generation_errors)} entrada(s) no se incluyeron en el ZIP:\n\n"
+                    + "\n".join(f"- {message}" for message in batch_generation_errors),
+                    icon="⚠️",
+                )
             st.download_button(
                 "Descargar entradas en ZIP",
                 data=zip_data,
@@ -574,5 +697,10 @@ with preview_column:
             st.caption("Se generará un nuevo PDF sin modificar el archivo original.")
         else:
             disabled_label = "Descargar entradas en ZIP" if generation_mode == "Varias entradas" else "Descargar entrada digitalizada"
+            if batch_generation_errors:
+                st.warning(
+                    "No se generó ninguna entrada:\n\n" + "\n".join(f"- {message}" for message in batch_generation_errors),
+                    icon="⚠️",
+                )
             st.button(disabled_label, disabled=True, icon=":material/download:", use_container_width=True)
             st.caption("Selecciona el PDF y valida al menos un QR para habilitar la descarga.")
