@@ -49,6 +49,15 @@ TICKETMASTER_FIELDS = {
     "detail": (208, 153, 275, 22, 8.5, "#111111"),
 }
 
+TICKETMASTER_DEFAULTS = {
+    "address": "Av. 28 de Julio, Lima s/n, Lima",
+    "admission_type": "VIP",
+    "door": "",
+    "service_charge": "S/. 0.00",
+    "total_price": "S/. 0.00",
+    "producer_address": "Velasco Astete 1243 San Borja",
+}
+
 # Coordenadas de origen de los textos editables en el PDF (x, y desde abajo).
 # Se eliminan los operadores de texto en estas áreas, sin pintar el fondo.
 TELETICKET_EDITABLE_TEXT_ORIGINS = (
@@ -109,8 +118,8 @@ TEMPLATE_PROFILES = {
         "editable": TICKETMASTER_EDITABLE_TEXT_ORIGINS,
         "identifiers": TICKETMASTER_EDITABLE_IDENTIFIER_ORIGINS,
         "event_images": (
-            (8, 14, 578, 49, 4, "#000000"),
-            (298, 307, 278, 204, 0, "#000000"),
+            (8, 14, 578, 49, 0, "#000000", "cover"),
+            (298, 307, 278, 204, 0, "#000000", "contain"),
         ),
         "qr_area": (493, 99, 70, 70),
         "qr_clear": (482, 93, 92, 110),
@@ -182,11 +191,11 @@ def _inspect_ticketmaster_fields(lines: list[str], text: str) -> dict[str, str]:
     )
     schedule = re.search(r"(\d{2}/\d{2}/\d{4})\s+([^\s]+)", flat_text)
     producer_match = re.search(
-        r"([^\n]+?)\s*-\s*Ruc\s*:\s*(\d{11})",
+        r"([^\n]+?)\s*-\s*Ruc\s*:\s*(\d{11})(?:\s*-\s*Dir\s*:\s*([^\n]+))?",
         text,
         re.IGNORECASE,
     )
-    price_match = re.search(r"S/\.\s*[\d.,]+", flat_text, re.IGNORECASE)
+    prices = re.findall(r"S/\.\s*[\d.,]+", flat_text, re.IGNORECASE)
     date_value = schedule.group(1) if schedule else ""
     day = ""
     if date_value:
@@ -212,19 +221,38 @@ def _inspect_ticketmaster_fields(lines: list[str], text: str) -> dict[str, str]:
                 category = line
                 break
 
+    admission_type = ""
+    detail_line_index = next(
+        (i for i, line in enumerate(lines) if re.search(r"Secci[oó]n:", line, re.IGNORECASE)),
+        -1,
+    )
+    if detail_line_index > 0:
+        admission_type = lines[detail_line_index - 1]
+
+    address_parts: list[str] = []
+    if date_index > 0:
+        venue_end = 1 + len(venue_parts)
+        address_parts = lines[venue_end:date_index]
+
     return {
         "day": day,
         "date": date_value,
         "time": schedule.group(2) if schedule else "",
         "location": " ".join(venue_parts),
+        "address": " ".join(address_parts),
         "event": lines[0] if lines else "",
         "producer": producer_match.group(1).strip() if producer_match else "",
-        "price": price_match.group(0) if price_match else "",
+        "producer_address": producer_match.group(3).strip() if producer_match and producer_match.group(3) else "",
+        "price": prices[0] if prices else "",
+        "service_charge": prices[1] if len(prices) > 1 else "",
+        "total_price": prices[2] if len(prices) > 2 else "",
         "ruc": producer_match.group(2) if producer_match else "",
+        "admission_type": admission_type,
         "ticket_type": detail.group(1).strip() if detail else "",
         "row": detail.group(2).strip() if detail else "",
         "seat": detail.group(3).strip() if detail else "",
         "category": category,
+        "door": "",
     }
 
 
@@ -244,7 +272,14 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
                 "ruc", "ticket_type", "row", "seat", "category",
             }
             if expected.issubset(stored_fields):
-                return {name: str(stored_fields[name]) for name in expected}
+                result = {name: str(stored_fields[name]) for name in expected}
+                template = detect_ticket_template(data)
+                if template == "ticketmaster":
+                    result.update({
+                        name: str(stored_fields.get(name, default))
+                        for name, default in TICKETMASTER_DEFAULTS.items()
+                    })
+                return result
         except (TypeError, ValueError, json.JSONDecodeError):
             pass
     template = detect_ticket_template(data)
@@ -547,7 +582,9 @@ def _draw_event_image(
     """Reemplaza las ilustraciones configuradas conservando relación de aspecto."""
     with Image.open(BytesIO(image_data)) as source:
         source = source.convert("RGBA")
-        for x, top, width, height, padding, background in profile["event_images"]:
+        for image_spec in profile["event_images"]:
+            x, top, width, height, padding, background = image_spec[:6]
+            area_mode = image_spec[6] if len(image_spec) > 6 else mode
             bottom = page_height - top - height
             overlay.setFillColorRGB(*_hex_color(background))
             overlay.rect(x, bottom, width, height, fill=1, stroke=0)
@@ -559,7 +596,7 @@ def _draw_event_image(
                 max(1, round(content_width * 4)),
                 max(1, round(content_height * 4)),
             )
-            if mode == "cover":
+            if area_mode == "cover":
                 prepared = ImageOps.fit(source, target_size, method=Image.Resampling.LANCZOS)
             else:
                 prepared = ImageOps.contain(source, target_size, method=Image.Resampling.LANCZOS)
@@ -576,6 +613,13 @@ def _draw_event_image(
                 width=draw_width, height=draw_height,
                 preserveAspectRatio=True, mask="auto",
             )
+            if profile is TEMPLATE_PROFILES["ticketmaster"] and top == 14:
+                # La marca permanece visible aunque la imagen cubra toda la franja.
+                overlay.setFillColorRGB(0, 0, 0)
+                overlay.roundRect(x + 37, bottom + 6, 38, 37, 4, fill=1, stroke=0)
+                overlay.setFillColorRGB(1, 1, 1)
+                overlay.setFont("Helvetica-BoldOblique", 24)
+                overlay.drawString(x + 49, bottom + 13, "t")
 
 
 def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes, profile: dict) -> None:
@@ -621,6 +665,145 @@ def _draw_profile_clear_rects(
         overlay.rect(x, page_height - top - height, width, height, fill=1, stroke=0)
 
 
+def _draw_fitted_line(
+    overlay,
+    page_height: float,
+    text: str,
+    x: float,
+    top: float,
+    width: float,
+    font_size: float,
+    font_name: str = "Helvetica",
+    color: str = "#111111",
+) -> None:
+    value = str(text or "").strip()
+    size = float(font_size)
+    while size > 5.5 and pdfmetrics.stringWidth(value, font_name, size) > width:
+        size -= 0.25
+    overlay.setFillColorRGB(*_hex_color(color))
+    overlay.setFont(font_name, size)
+    overlay.drawString(x, page_height - top - size, value)
+
+
+def _draw_wrapped_lines(
+    overlay,
+    page_height: float,
+    text: str,
+    x: float,
+    top: float,
+    width: float,
+    font_size: float,
+    font_name: str,
+    color: str,
+    max_lines: int = 2,
+) -> None:
+    words = str(text or "").split()
+    lines: list[str] = []
+    while words and len(lines) < max_lines:
+        line: list[str] = []
+        while words:
+            candidate = " ".join(line + [words[0]])
+            if line and pdfmetrics.stringWidth(candidate, font_name, font_size) > width:
+                break
+            line.append(words.pop(0))
+        lines.append(" ".join(line))
+    if words and lines:
+        lines[-1] = f"{lines[-1]} {' '.join(words)}"
+    for index, line in enumerate(lines):
+        _draw_fitted_line(
+            overlay, page_height, line, x, top + index * (font_size + 2),
+            width, font_size, font_name, color,
+        )
+
+
+def _draw_ticketmaster_layout(
+    overlay,
+    page_height: float,
+    fields: dict[str, str],
+    include_identifiers: bool,
+) -> None:
+    """Reconstruye las zonas variables conservando el diseño Ticketmaster."""
+    blue = "#1179e9"
+    dark_blue = "#026cdf"
+    line_blue = "#d7eafb"
+    white = "#ffffff"
+    black = "#111111"
+    muted = "#8d8d8d"
+
+    # Columna azul: secciones, separadores y tipografía del documento original.
+    left_x, left_width = 8, 181
+    overlay.setFillColorRGB(*_hex_color(dark_blue))
+    overlay.rect(left_x, page_height - 126, left_width, 49, fill=1, stroke=0)
+    _draw_fitted_line(overlay, page_height, "ticketmaster", 27, 94, 145, 17, "Helvetica-BoldOblique", white)
+    for top, height in ((126, 27), (153, 46), (199, 50), (249, 45)):
+        overlay.setFillColorRGB(*_hex_color(blue))
+        overlay.rect(left_x, page_height - top - height, left_width, height, fill=1, stroke=0)
+        overlay.setFillColorRGB(*_hex_color(dark_blue))
+        overlay.rect(left_x, page_height - top - 3, left_width, 3, fill=1, stroke=0)
+    overlay.setFillColorRGB(*_hex_color(dark_blue))
+    overlay.rect(103, page_height - 294, 4, 45, fill=1, stroke=0)
+
+    _draw_fitted_line(overlay, page_height, fields.get("event", ""), 27, 136, 150, 9.5, "Helvetica-Bold", white)
+    _draw_wrapped_lines(overlay, page_height, fields.get("location", ""), 27, 160, 150, 9.5, "Helvetica-Bold", white)
+    _draw_wrapped_lines(overlay, page_height, fields.get("address", ""), 27, 205, 150, 8.5, "Helvetica", white)
+    schedule = f"{fields.get('date', '').strip()} {fields.get('time', '').strip()}".strip()
+    _draw_fitted_line(overlay, page_height, schedule, 27, 232, 150, 9.5, "Helvetica-Bold", white)
+    _draw_fitted_line(overlay, page_height, "COMPRA", 27, 257, 70, 9.5, "Helvetica-Bold", white)
+    _draw_fitted_line(overlay, page_height, "TICKET", 126, 257, 55, 9.5, "Helvetica-Bold", white)
+    if include_identifiers:
+        _draw_fitted_line(overlay, page_height, fields.get("purchase_number", ""), 27, 274, 70, 9, "Helvetica", white)
+        _draw_fitted_line(overlay, page_height, fields.get("ticket_number", ""), 126, 274, 55, 9, "Helvetica", white)
+
+    # Área blanca: cada grupo mantiene la línea azul y la jerarquía original.
+    content_x, content_top, content_width, content_height = 189, 77, 397, 217
+    overlay.setFillColorRGB(1, 1, 1)
+    overlay.rect(content_x, page_height - content_top - content_height, content_width, content_height, fill=1, stroke=0)
+    overlay.setStrokeColorRGB(*_hex_color(dark_blue))
+    overlay.setLineWidth(1)
+    overlay.rect(8, page_height - 294, 578, 217, fill=0, stroke=1)
+
+    text_x, text_width = 208, 245
+    for top in (125, 151, 177, 207):
+        overlay.setStrokeColorRGB(*_hex_color(line_blue))
+        overlay.setLineWidth(0.8)
+        overlay.line(text_x, page_height - top, 453, page_height - top)
+
+    _draw_fitted_line(overlay, page_height, fields.get("event", ""), text_x, 103, text_width, 10.5, "Helvetica-Bold", black)
+    _draw_fitted_line(overlay, page_height, fields.get("admission_type", ""), text_x, 130, text_width, 10, "Helvetica", black)
+    detail = (
+        f"Seccion: {fields.get('ticket_type', '').strip()} - "
+        f"Fila: {fields.get('row', '').strip()} - Asiento: {fields.get('seat', '').strip()}"
+    )
+    _draw_fitted_line(overlay, page_height, detail, text_x, 156, 270, 9.5, "Helvetica", black)
+    _draw_fitted_line(overlay, page_height, "TARIFA", text_x, 182, 62, 7.5, "Helvetica-Bold", muted)
+    _draw_fitted_line(overlay, page_height, "PUERTA", 285, 182, 62, 7.5, "Helvetica-Bold", muted)
+    _draw_fitted_line(overlay, page_height, fields.get("category", ""), text_x, 194, 70, 9.5, "Helvetica", black)
+    _draw_fitted_line(overlay, page_height, fields.get("door", ""), 285, 194, 62, 9.5, "Helvetica", black)
+
+    price_columns = (
+        (text_x, "PRECIO", fields.get("price", ""), 72),
+        (273, "CARGO POR SERVICIO", fields.get("service_charge", ""), 92),
+        (370, "PRECIO TOTAL", fields.get("total_price", ""), 82),
+    )
+    for x, label, value, width in price_columns:
+        _draw_fitted_line(overlay, page_height, label, x, 216, width, 7.5, "Helvetica-Bold", muted)
+        _draw_fitted_line(overlay, page_height, value, x, 230, width, 9.5, "Helvetica", black)
+
+    # Pie del productor con la dirección completa y el peso del original.
+    overlay.setFillColorRGB(*_hex_color(dark_blue))
+    overlay.roundRect(8, page_height - 780, 578, 26, 3, fill=1, stroke=0)
+    producer_line = (
+        f"{fields.get('producer', '').strip()} - Ruc:{fields.get('ruc', '').strip()}"
+        f"-Dir :{fields.get('producer_address', '').strip()}"
+    )
+    size = 9.5
+    while size > 6 and pdfmetrics.stringWidth(producer_line, "Helvetica-Bold", size) > 540:
+        size -= 0.25
+    overlay.setFillColorRGB(1, 1, 1)
+    overlay.setFont("Helvetica-Bold", size)
+    overlay.drawCentredString(297, page_height - 771, producer_line)
+
+
 def edit_ticket_fields(
     data: bytes,
     fields: dict[str, str],
@@ -646,6 +829,8 @@ def edit_ticket_fields(
     overlay_buffer = BytesIO()
     overlay = canvas.Canvas(overlay_buffer, pagesize=(width, height))
     _draw_profile_clear_rects(overlay, height, profile, replace_identifiers)
+    if template == "ticketmaster":
+        _draw_ticketmaster_layout(overlay, height, fields, replace_identifiers)
     if event_image:
         try:
             _draw_event_image(overlay, height, event_image, profile, image_mode)
@@ -653,58 +838,34 @@ def edit_ticket_fields(
             raise ValueError("La imagen del evento no es válida.") from exc
     if reconstructed_qr:
         _draw_reconstructed_qr(overlay, height, reconstructed_qr, profile)
-    schedule = [
-        f"{fields.get('day', '').strip()}, {fields.get('date', '').strip()}",
-        fields.get("time", "").strip(),
-    ]
-    _draw_replacement(overlay, height, ticket_fields["schedule"], schedule)
-    names = (
-        ("location", "ticket_type", "category", "event", "price")
-        if template == "ticketmaster"
-        else ("location", "ticket_type", "row", "seat", "category", "event", "producer", "ruc", "price")
-    )
-    for name in names:
-        value = fields.get(name, "").strip()
-        if template == "teleticket" and name in {"row", "seat"}:
-            header = "Fila" if name == "row" else "Asiento"
-            _draw_centered_replacement(
-                overlay, height, _align_to_header(data, header, ticket_fields[name]), value
-            )
-        else:
-            _draw_replacement(
-                overlay,
-                height,
-                ticket_fields[name],
-                _wrap_location(value) if name == "location" else [value],
-            )
-    if template == "ticketmaster":
-        _draw_replacement(
-            overlay,
-            height,
-            ticket_fields["event_left"],
-            [fields.get("event", "").strip()],
-        )
-        detail = (
-            f"Sección: {fields.get('ticket_type', '').strip()} - "
-            f"Fila: {fields.get('row', '').strip()} - Asiento: {fields.get('seat', '').strip()}"
-        )
-        _draw_replacement(overlay, height, ticket_fields["detail"], [detail])
-        producer_line = f"{fields.get('producer', '').strip()} - RUC: {fields.get('ruc', '').strip()}"
-        _draw_replacement(overlay, height, ticket_fields["producer"], [producer_line])
+    if template == "teleticket":
+        schedule = [
+            f"{fields.get('day', '').strip()}, {fields.get('date', '').strip()}",
+            fields.get("time", "").strip(),
+        ]
+        _draw_replacement(overlay, height, ticket_fields["schedule"], schedule)
+        for name in ("location", "ticket_type", "row", "seat", "category", "event", "producer", "ruc", "price"):
+            value = fields.get(name, "").strip()
+            if name in {"row", "seat"}:
+                header = "Fila" if name == "row" else "Asiento"
+                _draw_centered_replacement(
+                    overlay, height, _align_to_header(data, header, ticket_fields[name]), value
+                )
+            else:
+                _draw_replacement(
+                    overlay,
+                    height,
+                    ticket_fields[name],
+                    _wrap_location(value) if name == "location" else [value],
+                )
     if replace_identifiers:
-        if template == "ticketmaster":
+        if template == "teleticket":
             _draw_centered_replacement(
                 overlay,
                 height,
-                ticket_fields["purchase_number"],
-                fields.get("qr_number", "").strip(),
+                ticket_fields["qr_number"],
+                f"{profile['number_prefix']}{fields.get('qr_number', '').strip()}",
             )
-        _draw_centered_replacement(
-            overlay,
-            height,
-            ticket_fields["qr_number"],
-            f"{profile['number_prefix']}{fields.get('qr_number', '').strip()}",
-        )
         _draw_centered_replacement(
             overlay,
             height,
@@ -725,7 +886,9 @@ def edit_ticket_fields(
             name: fields.get(name, "")
             for name in (
                 "day", "date", "time", "location", "event", "producer", "price",
-                "ruc", "ticket_type", "row", "seat", "category",
+                "ruc", "ticket_type", "row", "seat", "category", "address",
+                "admission_type", "door", "service_charge", "total_price",
+                "producer_address",
             )
         },
         ensure_ascii=False,

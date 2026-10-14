@@ -128,19 +128,52 @@ def test_ticketmaster_template_is_detected_and_editable():
         "row": "7",
         "seat": "74",
         "category": "CORTESIA",
+        "address": "Av. 28 de Julio, Lima s/n, Lima",
+        "admission_type": "VIP",
+        "door": "",
+        "service_charge": "S/. 0.00",
+        "total_price": "S/. 0.00",
+        "producer_address": "Velasco Astete 1243 San Borja",
     }
     result = edit_ticket_fields(
         source,
         {
             **detected,
             "event": "EVENTO DE PRUEBA",
+            "location": "RECINTO DE PRUEBA",
+            "address": "Av. Prueba 123, Lima",
+            "admission_type": "INGRESO GENERAL",
+            "ticket_type": "PLATINUM",
             "row": "12",
             "seat": "34",
+            "category": "TARIFA ESPECIAL",
+            "door": "PUERTA 2",
+            "price": "S/. 120.00",
+            "service_charge": "S/. 18.00",
+            "total_price": "S/. 138.00",
+            "producer": "PRODUCTORA DE PRUEBA SAC",
+            "ruc": "20999999991",
+            "producer_address": "Av. Productor 456, Lima",
             "qr_number": "12345678",
             "qr_code": "98765432109876",
+            "purchase_number": "87654321",
+            "ticket_number": "12348765",
         },
     )
     text = PdfReader(BytesIO(result)).pages[0].extract_text()
     assert "EVENTO DE PRUEBA" in text
     assert "Fila: 12 - Asiento: 34" in text
+    assert "RECINTO DE PRUEBA" in text
+    assert "Av. Prueba 123, Lima" in text
+    assert "INGRESO GENERAL" in text
+    assert "TARIFA ESPECIAL" in text
+    assert "PUERTA 2" in text
+    assert "S/. 120.00" in text
+    assert "S/. 18.00" in text
+    assert "S/. 138.00" in text
+    assert "PRODUCTORA DE PRUEBA SAC" in text
+    assert "20999999991" in text
+    assert "Av. Productor 456, Lima" in text
+    assert "87654321" in text
+    assert "12348765" in text
     assert "98765432109876" in text

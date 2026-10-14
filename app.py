@@ -15,7 +15,7 @@ import cv2
 import numpy as np
 import streamlit as st
 
-from src.pdf_editor import edit_ticket_fields, inspect_pdf, inspect_ticket_fields
+from src.pdf_editor import detect_ticket_template, edit_ticket_fields, inspect_pdf, inspect_ticket_fields
 from src.pdf_preview import pdf_page_count as count_pdf_pages
 from src.pdf_preview import render_pdf_page as render_page_png
 from src.pipeline import process_image
@@ -149,6 +149,8 @@ def new_ticket_identity() -> dict[str, str]:
     return {
         "number": str(10_000 + secrets.randbelow(90_000)),
         "code": "".join(str(secrets.randbelow(10)) for _ in range(16)),
+        "purchase": str(10_000_000 + secrets.randbelow(90_000_000)),
+        "ticket": str(10_000_000 + secrets.randbelow(90_000_000)),
     }
 
 
@@ -314,6 +316,8 @@ batch_seat_labels: dict[str, str] = {}
 if "ticket_identity" not in st.session_state:
     st.session_state.ticket_identity = new_ticket_identity()
 ticket_identity = st.session_state.ticket_identity
+if "purchase" not in ticket_identity or "ticket" not in ticket_identity:
+    ticket_identity.update(new_ticket_identity())
 
 editor_column, preview_column = st.columns([66, 34], gap="medium")
 
@@ -557,9 +561,11 @@ with editor_column:
 
     detected = None
     pdf_info = None
+    template_kind = None
     if pdf_data is not None:
         try:
             pdf_info = inspect_pdf(pdf_data)
+            template_kind = detect_ticket_template(pdf_data)
             detected = inspect_ticket_fields(pdf_data)
             if pdf_source == "Plantilla Teleticket" and detected["category"].isdigit():
                 detected["category"] = "PRE-VENTA IBK"
@@ -573,6 +579,12 @@ with editor_column:
             with event_col: event = st.text_input("Nombre del evento", detected["event"])
             with producer_col: producer = st.text_input("Productor", detected["producer"])
             with ruc_col: ruc = st.text_input("RUC", detected["ruc"], max_chars=11)
+            producer_address = ""
+            if template_kind == "ticketmaster":
+                producer_address = st.text_input(
+                    "Dirección del productor",
+                    detected.get("producer_address", ""),
+                )
             st.divider()
             section_intro("Fecha y ubicación", "Información visible en la cabecera de la entrada.", "cyan", 5)
             day_col, date_col, time_col, location_col = st.columns([.7, .9, .8, 1.45])
@@ -580,15 +592,33 @@ with editor_column:
             with date_col: date = st.text_input("Fecha", detected["date"])
             with time_col: time = st.text_input("Hora", detected["time"])
             with location_col: location = st.text_input("Lugar", detected["location"])
+            address = ""
+            if template_kind == "ticketmaster":
+                address = st.text_input("Dirección del recinto", detected.get("address", ""))
             st.divider()
             section_intro("Información de la entrada", "Sector, ubicación asignada y precio.", "orange", 6)
-            sector_col, category_col = st.columns(2)
-            with sector_col: ticket_type = st.text_input("Sector", detected["ticket_type"])
-            with category_col: category = st.text_input("Categoría", detected["category"])
+            admission_type = ""
+            door = ""
+            service_charge = ""
+            total_price = ""
+            if template_kind == "ticketmaster":
+                admission_col, sector_col, category_col, door_col = st.columns(4)
+                with admission_col: admission_type = st.text_input("Tipo de entrada", detected.get("admission_type", ""))
+                with sector_col: ticket_type = st.text_input("Sección", detected["ticket_type"])
+                with category_col: category = st.text_input("Tarifa", detected["category"])
+                with door_col: door = st.text_input("Puerta", detected.get("door", ""))
+            else:
+                sector_col, category_col = st.columns(2)
+                with sector_col: ticket_type = st.text_input("Sector", detected["ticket_type"])
+                with category_col: category = st.text_input("Categoría", detected["category"])
             row_col, seat_col, price_col = st.columns(3)
             with row_col: row = st.text_input("Fila", detected["row"], disabled=seat_mode, help="En modo asientos, la fila se indica en cada QR." if seat_mode else None)
             with seat_col: seat = st.text_input("Asiento", detected["seat"], disabled=seat_mode, help="En modo asientos, el asiento se indica en cada QR." if seat_mode else None)
             with price_col: price = st.text_input("Precio", detected["price"])
+            if template_kind == "ticketmaster":
+                service_col, total_col = st.columns(2)
+                with service_col: service_charge = st.text_input("Cargo por servicio", detected.get("service_charge", ""))
+                with total_col: total_price = st.text_input("Precio total", detected.get("total_price", ""))
             st.divider()
             section_intro("Imagen del evento", "Reemplaza la fotografía o el logo de la plantilla.", "orange", 7)
             image_preview_col, image_control_col = st.columns([1, 2.2], vertical_alignment="center")
@@ -596,7 +626,11 @@ with editor_column:
                 with st.container(key="event_image_upload"):
                     st.markdown('<div class="image-upload-marker"></div>', unsafe_allow_html=True)
                     event_image = st.file_uploader("Cambiar imagen", type=["png", "jpg", "jpeg", "webp"], key="event_image", help="Los PNG transparentes son ideales para logos.")
-                    image_mode_label = st.radio("Modo de imagen", ["Logo completo", "Rellenar espacio"], horizontal=True)
+                    if template_kind == "ticketmaster":
+                        image_mode_label = "Logo completo"
+                        st.caption("La franja superior se rellena automáticamente y la portada principal se muestra completa.")
+                    else:
+                        image_mode_label = st.radio("Modo de imagen", ["Logo completo", "Rellenar espacio"], horizontal=True)
             with image_preview_col:
                 if event_image is not None: st.image(event_image, caption="Imagen seleccionada", use_container_width=True)
                 else: st.caption("Sin imagen nueva")
@@ -606,14 +640,23 @@ with editor_column:
                 "event": event, "day": day, "date": date, "time": time,
                 "location": location, "ticket_type": ticket_type, "row": row,
                 "seat": seat, "category": category, "producer": producer,
-                "ruc": ruc, "price": price,
+                "ruc": ruc, "price": price, "address": address,
+                "admission_type": admission_type, "door": door,
+                "service_charge": service_charge, "total_price": total_price,
+                "producer_address": producer_address,
             }
             event_image_data = event_image.getvalue() if event_image is not None else None
             image_mode = "cover" if image_mode_label == "Rellenar espacio" else "contain"
             if generation_mode == "Una entrada":
                 try:
                     with st.spinner("Actualizando la vista previa…"):
-                        fields = {**common_fields, "qr_number": ticket_identity["number"], "qr_code": ticket_identity["code"]}
+                        fields = {
+                            **common_fields,
+                            "qr_number": ticket_identity["number"],
+                            "qr_code": ticket_identity["code"],
+                            "purchase_number": ticket_identity["purchase"],
+                            "ticket_number": ticket_identity["ticket"],
+                        }
                         edited_pdf = build_ticket_pdf(pdf_data, fields, event_image_data, image_mode, qr_png)
                 except (ValueError, RuntimeError) as error:
                     generation_error = str(error)
@@ -622,7 +665,13 @@ with editor_column:
                     used_seats: dict[tuple[str, str], str] = {}
                     for item in ready_items:
                         identity = batch_ticket_identity(item["key"])
-                        fields = {**common_fields, "qr_number": identity["number"], "qr_code": identity["code"]}
+                        fields = {
+                            **common_fields,
+                            "qr_number": identity["number"],
+                            "qr_code": identity["code"],
+                            "purchase_number": identity["purchase"],
+                            "ticket_number": identity["ticket"],
+                        }
                         if seat_mode:
                             item_row = item.get("row", "").strip()
                             item_seat = item.get("seat", "").strip()
