@@ -78,7 +78,12 @@ st.markdown(
     .stButton>button[kind="secondary"]:hover{border-color:rgba(37,201,232,.28);color:var(--fh-cyan);background:rgba(37,201,232,.10)}
     .stDownloadButton>button[kind="primary"]{min-height:54px;border:0!important;background:#ff2e9f!important;color:#fff!important;box-shadow:0 10px 24px rgba(255,46,159,.23),inset 0 1px 0 rgba(255,255,255,.18)}
     .stDownloadButton>button[kind="primary"] *,.stDownloadButton>button[kind="primary"] p{color:#fff!important;opacity:1!important}.stDownloadButton>button[kind="primary"]:hover{filter:brightness(1.08);transform:translateY(-1px)}.stButton>button:disabled{opacity:1!important;border-color:rgba(255,255,255,.06)!important;background:#2a2b31!important;color:#777b84!important}
+    .stButton>button[kind="primary"]{min-height:50px;border:0!important;background:#ff2e9f!important;color:#fff!important;box-shadow:0 10px 24px rgba(255,46,159,.22),inset 0 1px 0 rgba(255,255,255,.18)}.stButton>button[kind="primary"] *,.stButton>button[kind="primary"] p{color:#fff!important}.stButton>button[kind="primary"]:hover{filter:brightness(1.08);transform:translateY(-1px)}
     .batch-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 14px}.batch-summary__item{padding:11px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#181920}.batch-summary__item strong{display:block;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:17px}.batch-summary__item span{display:block;margin-top:2px;color:var(--fh-muted);font-size:9px}.batch-summary__item--ok strong{color:var(--fh-green)}.batch-summary__item--error strong{color:var(--fh-orange)}
+    [data-testid="stDialog"]:has(.completion-modal) [role="dialog"]{border:1px solid rgba(255,255,255,.11);border-radius:20px;background:radial-gradient(circle at 100% 0,rgba(37,201,232,.08),transparent 15rem),linear-gradient(145deg,#1b1b22,#101116);box-shadow:0 30px 80px rgba(0,0,0,.48)}
+    .completion-modal{position:relative;margin:-4px 0 2px;padding:4px 0 12px}.completion-modal::after{content:"";display:block;width:138px;height:2px;margin-top:14px;border-radius:2px;background:linear-gradient(90deg,#ff2e9f 0 38%,#ff7043 38% 68%,#25c9e8 68% 100%)}.completion-modal__eyebrow{color:var(--fh-cyan);font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.completion-modal__title{margin:6px 0 5px;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:22px;font-weight:800;letter-spacing:-.035em}.completion-modal__copy{margin:0;color:var(--fh-muted);font-size:11px;line-height:1.5}
+    .completion-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:4px 0 12px}.completion-stat{padding:11px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#17181e}.completion-stat strong{display:block;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:19px}.completion-stat span{display:block;margin-top:2px;color:var(--fh-muted);font-size:9px}.completion-stat--ok strong{color:var(--fh-green)}.completion-stat--warn strong{color:var(--fh-orange)}
+    .support-card{position:relative;overflow:hidden;margin-top:14px;padding:14px 15px 14px 18px;border:1px solid rgba(255,112,67,.20);border-radius:15px;background:radial-gradient(circle at 100% 0,rgba(255,112,67,.10),transparent 9rem),#171719}.support-card::before{content:"";position:absolute;left:0;top:17%;bottom:17%;width:3px;border-radius:0 3px 3px 0;background:var(--fh-orange)}.support-card__label{color:#ff9b79;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.support-card strong{display:block;margin-top:5px;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:14px}.support-card p{margin:4px 0 10px;color:var(--fh-muted);font-size:10px;line-height:1.45}.support-card__account{display:flex;flex-wrap:wrap;gap:6px 13px;color:#fff;font-size:11px;font-weight:800}.support-card__account span:first-child{color:var(--fh-cyan)}
     @media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:12px 11px 36px}[data-testid="stHorizontalBlock"]{flex-wrap:wrap}[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:100%!important;width:100%!important}[data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){position:static}.tool-identity{padding-top:4px}.tool-identity h1{font-size:28px}.batch-summary{grid-template-columns:1fr}}
     .seat-summary{margin:0 0 10px;padding:10px 12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#181920}.seat-summary__top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;color:var(--fh-muted);font-size:10.5px}.seat-summary__top b{color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:15px}.seat-summary__ok{color:var(--fh-green)}.seat-summary__bad{color:var(--fh-orange)}.seat-summary__bar{height:3px;margin-top:8px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden}.seat-summary__bar span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(81,217,138,.55),var(--fh-green))}
     .st-key-seat_slots [class*="st-key-seat_slot_"]{padding:8px 9px 6px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#15161c;gap:.25rem}
@@ -99,7 +104,7 @@ st.markdown(
     .qr-process__more{margin-top:10px}.qr-process__more summary{cursor:pointer;color:#9fb2a8;font-size:10px;font-weight:750;list-style:none}.qr-process__more summary::-webkit-details-marker{display:none}.qr-process__more summary::before{content:"▸ "}.qr-process__more[open] summary::before{content:"▾ "}.qr-process__more .qr-process__steps{margin-top:10px}
     .st-key-qr_result_card [data-testid="stImage"] img{max-height:240px;object-fit:contain}
     @media(max-width:900px){.st-key-qr_result_card [data-testid="stHorizontalBlock"]{flex-wrap:wrap!important;gap:6px!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:0!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3){flex:0 0 calc(44% - 4px)!important;width:calc(44% - 4px)!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex:0 0 8%!important;width:8%!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 100%!important;width:100%!important}.qr-process{padding:12px}.st-key-qr_result_card [data-testid="stImage"] img{max-height:170px}}
-    @media(max-width:900px){.batch-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}.batch-summary__item{padding:8px 9px}.batch-summary__item strong{font-size:15px}.batch-summary__item span{font-size:8.5px}.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3),.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 22%!important;width:22%!important}}
+    @media(max-width:900px){.batch-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}.batch-summary__item{padding:8px 9px}.batch-summary__item strong{font-size:15px}.batch-summary__item span{font-size:8.5px}.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3),.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 22%!important;width:22%!important}.completion-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.completion-stat{padding:9px}.support-card__account{display:grid;gap:4px}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -261,7 +266,7 @@ def render_pdf_preview(data: bytes | None) -> None:
                 key="preview_zoom",
             )
         image = render_pdf_page(data, page_number - 1, zoom)
-        st.image(image, caption=f"Página {page_number} de {total_pages}", use_container_width=True)
+        st.image(image, caption=f"Página {page_number} de {total_pages}", width="stretch")
         st.caption("La vista se actualiza automáticamente. Usa el icono de ampliar de la imagen para verla en pantalla completa.")
     except (ValueError, RuntimeError) as error:
         st.error(f"No se pudo renderizar la vista previa: {error}", icon="🚨")
@@ -275,12 +280,108 @@ def show_tutorial() -> None:
     3. Sube una o varias fotografías claras de los QR físicos, con los cuatro bordes visibles.
     4. Espera la validación y revisa los resultados.
     5. Actualiza los datos y la imagen del evento.
-    6. Descarga el PDF individual o un ZIP con todos los PDF del lote.
+    6. Pulsa **Digitalizar entrada** para revisar el resumen y descargar el PDF o el ZIP del lote.
 
     Si son entradas con asiento, elige "Varias entradas", marca "Son entradas con asiento" e indica la fila y el asiento de cada QR.
 
     El archivo original no se modifica.
     """)
+
+
+@st.dialog(
+    "Digitalización completada",
+    width="large",
+    icon=":material/task_alt:",
+)
+def show_generation_dialog(
+    *,
+    entry_names: list[str],
+    download_data: bytes,
+    download_filename: str,
+    download_mime: str,
+    mode: str,
+    event_name: str,
+    source_name: str,
+    errors: list[str] | None = None,
+) -> None:
+    """Muestra el cierre del proceso y concentra la descarga en un solo lugar."""
+    errors = errors or []
+    entry_count = len(entry_names)
+    plural = entry_count != 1
+    noun = "entradas" if plural else "entrada"
+    download_label = "Descargar entradas" if plural else "Descargar entrada"
+
+    st.markdown(
+        f"""
+        <div class="completion-modal">
+          <div class="completion-modal__eyebrow">Proceso finalizado</div>
+          <div class="completion-modal__title">{entry_count} {noun} {"listas" if plural else "lista"}</div>
+          <p class="completion-modal__copy">Los códigos QR fueron validados y los documentos ya están preparados para descargar.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.status("Proceso completado", state="complete", expanded=True):
+        st.write(":material/check_circle: Códigos QR detectados y validados")
+        st.write(":material/check_circle: Información aplicada a la plantilla")
+        st.write(f":material/check_circle: {entry_count} PDF {'generados' if plural else 'generado'} correctamente")
+        if mode == "batch":
+            st.write(":material/check_circle: Archivos organizados en un ZIP")
+
+    st.markdown(
+        f"""
+        <div class="completion-stats">
+          <div class="completion-stat"><strong>{entry_count + len(errors)}</strong><span>Procesadas</span></div>
+          <div class="completion-stat completion-stat--ok"><strong>{entry_count}</strong><span>Listas para descargar</span></div>
+          <div class="completion-stat completion-stat--warn"><strong>{len(errors)}</strong><span>Requieren revisión</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.subheader("Resumen de la digitalización", icon=":material/receipt_long:")
+        st.caption(f"{event_name or 'Evento'} · {source_name}")
+        for index, filename in enumerate(entry_names, start=1):
+            name_column, status_column = st.columns([5, 1], vertical_alignment="center")
+            name_column.text(f"{index:02d}. {filename}")
+            status_column.badge("Lista", icon=":material/check:", color="green")
+        if errors:
+            with st.expander(
+                f"{len(errors)} entrada(s) requieren revisión",
+                icon=":material/warning:",
+            ):
+                for message in errors:
+                    st.write(f"- {message}")
+
+    st.download_button(
+        download_label,
+        data=download_data,
+        file_name=download_filename,
+        mime=download_mime,
+        type="primary",
+        icon=":material/download:",
+        width="stretch",
+        on_click=complete_download,
+        args=(entry_count, mode),
+        key=f"modal_download_{mode}_{download_filename}",
+    )
+    st.caption("Guarda tus entradas en un lugar seguro y no compartas sus códigos QR.")
+
+    st.markdown(
+        """
+        <div class="support-card">
+          <div class="support-card__label">Apoya esta herramienta</div>
+          <strong>¿Te fue útil? Puedes dejarnos una propina</strong>
+          <p>Tu apoyo es opcional y nos ayuda mucho a seguir manteniendo y mejorando el digitalizador.</p>
+          <div class="support-card__account">
+            <span>Yape o Plin</span><span>968 424 445</span><span>Keenscy Sanchez</span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 with st.container(border=False):
@@ -290,7 +391,7 @@ with st.container(border=False):
         <div class="tool-identity"><span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 20h2"/></svg></span><span><h1>Digitalizador de entradas</h1><p>Recupera y edita entradas digitales con la misma validez del código QR.</p></span></div>
         """, unsafe_allow_html=True)
     with help_column:
-        if st.button("¿Cómo usar?", icon=":material/help_outline:", use_container_width=True):
+        if st.button("¿Cómo usar?", icon=":material/help_outline:", width="stretch"):
             show_tutorial()
 
 
@@ -525,13 +626,13 @@ with editor_column:
                 original_column, arrow_column, result_column, status_column = st.columns([1.15, .25, 1.15, 1.6], vertical_alignment="center")
                 with original_column:
                     st.caption("Imagen original")
-                    st.image(cv2.cvtColor(qr_original, cv2.COLOR_BGR2RGB), use_container_width=True)
+                    st.image(cv2.cvtColor(qr_original, cv2.COLOR_BGR2RGB), width="stretch")
                 with arrow_column:
                     st.markdown("<div style='text-align:center;color:#777f91;font-size:22px'>→</div>", unsafe_allow_html=True)
                 with result_column:
                     st.caption("QR digitalizado")
                     if qr_result.success:
-                        st.image(qr_result.clean, clamp=True, use_container_width=True)
+                        st.image(qr_result.clean, clamp=True, width="stretch")
                 with status_column:
                     if qr_ready:
                         st.markdown(
@@ -632,7 +733,7 @@ with editor_column:
                     else:
                         image_mode_label = st.radio("Modo de imagen", ["Logo completo", "Rellenar espacio"], horizontal=True)
             with image_preview_col:
-                if event_image is not None: st.image(event_image, caption="Imagen seleccionada", use_container_width=True)
+                if event_image is not None: st.image(event_image, caption="Imagen seleccionada", width="stretch")
                 else: st.caption("Sin imagen nueva")
 
         if qr_ready:
@@ -722,17 +823,23 @@ with preview_column:
                     + "\n".join(f"- {message}" for message in batch_generation_errors),
                     icon="⚠️",
                 )
-            st.download_button(
-                "Descargar entradas en ZIP",
-                data=zip_data,
-                file_name=f"{safe_base}.zip",
-                mime="application/zip",
+            if st.button(
+                f"Digitalizar {len(numbered_entries)} entradas",
                 type="primary",
-                icon=":material/folder_zip:",
-                use_container_width=True,
-                on_click=complete_download,
-                args=(len(numbered_entries), "batch"),
-            )
+                icon=":material/auto_fix_high:",
+                width="stretch",
+                key=f"open_batch_result_{safe_base}",
+            ):
+                show_generation_dialog(
+                    entry_names=[filename for filename, _ in numbered_entries],
+                    download_data=zip_data,
+                    download_filename=f"{safe_base}.zip",
+                    download_mime="application/zip",
+                    mode="batch",
+                    event_name=event,
+                    source_name=pdf_source,
+                    errors=batch_generation_errors,
+                )
             st.caption("Cada PDF conserva el QR reconstruido correspondiente y utiliza identificadores únicos.")
         elif edited_pdf is not None:
             download_name = st.text_input(
@@ -742,7 +849,23 @@ with preview_column:
                 help="Puedes escribir el nombre con o sin la extensión .pdf.",
             )
             st.caption(f"Identificadores de esta descarga: N° {ticket_identity['number']} · {ticket_identity['code']}")
-            st.download_button("Descargar entrada digitalizada", data=edited_pdf, file_name=safe_pdf_filename(download_name), mime="application/pdf", type="primary", icon=":material/download:", use_container_width=True, on_click=complete_download, args=(1, "single"))
+            single_filename = safe_pdf_filename(download_name)
+            if st.button(
+                "Digitalizar entrada",
+                type="primary",
+                icon=":material/auto_fix_high:",
+                width="stretch",
+                key=f"open_single_result_{single_filename}",
+            ):
+                show_generation_dialog(
+                    entry_names=[single_filename],
+                    download_data=edited_pdf,
+                    download_filename=single_filename,
+                    download_mime="application/pdf",
+                    mode="single",
+                    event_name=event,
+                    source_name=pdf_source,
+                )
             st.caption("Se generará un nuevo PDF sin modificar el archivo original.")
         else:
             disabled_label = "Descargar entradas en ZIP" if generation_mode == "Varias entradas" else "Descargar entrada digitalizada"
@@ -751,5 +874,5 @@ with preview_column:
                     "No se generó ninguna entrada:\n\n" + "\n".join(f"- {message}" for message in batch_generation_errors),
                     icon="⚠️",
                 )
-            st.button(disabled_label, disabled=True, icon=":material/download:", use_container_width=True)
+            st.button(disabled_label, disabled=True, icon=":material/download:", width="stretch")
             st.caption("Selecciona el PDF y valida al menos un QR para habilitar la descarga.")
