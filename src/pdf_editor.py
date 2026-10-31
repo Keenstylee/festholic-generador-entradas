@@ -58,6 +58,15 @@ TICKETMASTER_DEFAULTS = {
     "producer_address": "Velasco Astete 1243 San Borja",
 }
 
+JOINNUS_DEFAULTS = {
+    "address": "AV. ALFREDO MENDIOLA 3301",
+    "attendee_name": "Luis Enrique Peña Flores",
+    "attendee_dni": "74711061",
+    "transaction": "849B6AFD4FBA08FC441E",
+    "purchase_date": "23/10/2026 - 07:25:09 AM",
+    "purchase_number": "36132649",
+}
+
 # Coordenadas de origen de los textos editables en el PDF (x, y desde abajo).
 # Se eliminan los operadores de texto en estas áreas, sin pintar el fondo.
 TELETICKET_EDITABLE_TEXT_ORIGINS = (
@@ -101,6 +110,8 @@ TICKETMASTER_EDITABLE_IDENTIFIER_ORIGINS = (
     (620, 225, 760, 255),    # código inferior del QR
 )
 
+JOINNUS_FIELDS = {}
+
 TEMPLATE_PROFILES = {
     "teleticket": {
         "fields": TELETICKET_FIELDS,
@@ -138,6 +149,17 @@ TEMPLATE_PROFILES = {
             (20, 272, 77, 22, "#1179e9"),
             (106, 272, 79, 22, "#1179e9"),
         ),
+    },
+    "joinnus": {
+        "fields": JOINNUS_FIELDS,
+        "editable": (),
+        "identifiers": (),
+        "event_images": ((30.5, 194.7, 81.8, 45.2, 0, "#ffffff", "cover"),),
+        "qr_area": (65.8, 73.4, 90.3, 90.3),
+        "qr_clear": (54, 66, 112, 107),
+        "number_prefix": "",
+        "clear_rects": (),
+        "identifier_clear_rects": (),
     },
 }
 
@@ -177,8 +199,16 @@ def detect_ticket_template(data: bytes) -> str:
         and "ticket" in normalized
     ):
         return "ticketmaster"
+    if (
+        600 <= width <= 620
+        and 780 <= height <= 805
+        and "joinnus" in normalized
+        and "nro. de compra" in normalized
+        and "detalles de la compra" in normalized
+    ):
+        return "joinnus"
     raise ValueError(
-        "El PDF no coincide con las plantillas compatibles de Teleticket o Ticketmaster."
+        "El PDF no coincide con las plantillas compatibles de Teleticket, Ticketmaster o Joinnus."
     )
 
 
@@ -256,8 +286,64 @@ def _inspect_ticketmaster_fields(lines: list[str], text: str) -> dict[str, str]:
     }
 
 
+def _joinnus_text(value: str) -> str:
+    """Corrige los caracteres que algunos PDF de Joinnus extraen como reemplazos."""
+    return (
+        str(value or "")
+        .replace("Pe�a", "Peña")
+        .replace("s�b.", "sáb.")
+        .replace("S�b.", "Sáb.")
+        .replace("CORTES�A", "CORTESÍA")
+        .replace("Direcci�n", "Dirección")
+        .strip()
+    )
+
+
+def _inspect_joinnus_fields(lines: list[str], text: str) -> dict[str, str]:
+    clean = [_joinnus_text(line) for line in lines]
+
+    def after(label: str) -> str:
+        for index, line in enumerate(clean):
+            if line.casefold() == label.casefold() and index + 1 < len(clean):
+                return clean[index + 1]
+        return ""
+
+    purchase_match = re.search(r"Nro\.\s*de\s*compra:\s*([^\s]+)", " ".join(clean), re.IGNORECASE)
+    schedule_line = clean[8] if len(clean) > 8 else ""
+    schedule_match = re.match(
+        r"(.+?)\s+(\d{1,2}:\d{2}\s*(?:AM|PM))\s+(.+)$",
+        schedule_line,
+        re.IGNORECASE,
+    )
+    date_part = schedule_match.group(1).strip() if schedule_match else ""
+    day, _, date_value = date_part.partition(" ")
+    producer_line = after("Organizado por:")
+    producer_match = re.match(r"(.+?)\s*-\s*(\d{11})$", producer_line)
+
+    return {
+        "day": day.rstrip(".").title(),
+        "date": date_value.strip(),
+        "time": schedule_match.group(2).strip() if schedule_match else "",
+        "location": schedule_match.group(3).strip() if schedule_match else "",
+        "address": after("Dirección del evento:"),
+        "event": clean[7] if len(clean) > 7 else "",
+        "producer": producer_match.group(1).strip() if producer_match else producer_line,
+        "ruc": producer_match.group(2) if producer_match else "",
+        "price": after("Precio de la entrada"),
+        "ticket_type": after("Tipo de entrada"),
+        "row": "",
+        "seat": "",
+        "category": "",
+        "attendee_name": after("Nombre"),
+        "attendee_dni": after("DNI"),
+        "transaction": after("Transacción"),
+        "purchase_date": after("Fecha de compra"),
+        "purchase_number": purchase_match.group(1) if purchase_match else "",
+    }
+
+
 def inspect_ticket_fields(data: bytes) -> dict[str, str]:
-    """Extrae los datos visibles de una entrada Teleticket o Ticketmaster."""
+    """Extrae los datos visibles de una entrada compatible."""
     reader = PdfReader(BytesIO(data))
     if reader.is_encrypted:
         raise ValueError("El PDF está protegido con contraseña.")
@@ -279,6 +365,11 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
                         name: str(stored_fields.get(name, default))
                         for name, default in TICKETMASTER_DEFAULTS.items()
                     })
+                elif template == "joinnus":
+                    result.update({
+                        name: str(stored_fields.get(name, default))
+                        for name, default in JOINNUS_DEFAULTS.items()
+                    })
                 return result
         except (TypeError, ValueError, json.JSONDecodeError):
             pass
@@ -288,6 +379,8 @@ def inspect_ticket_fields(data: bytes) -> dict[str, str]:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     if template == "ticketmaster":
         return _inspect_ticketmaster_fields(lines, text)
+    if template == "joinnus":
+        return _inspect_joinnus_fields(lines, text)
 
     def labeled_value(label: str) -> str:
         prefix = f"{label}:"
@@ -804,6 +897,92 @@ def _draw_ticketmaster_layout(
     overlay.drawCentredString(297, page_height - 771, producer_line)
 
 
+def _draw_joinnus_layout(
+    overlay,
+    page_height: float,
+    fields: dict[str, str],
+) -> None:
+    """Reconstruye todas las zonas variables de la entrada Joinnus."""
+    ink = "#0d1b2a"
+    muted = "#5f6670"
+    green = "#00a884"
+    mint = "#dffbf8"
+    border = "#c9d9e7"
+    white = "#ffffff"
+
+    def rect_from_top(x: float, top: float, width: float, height: float, color: str) -> None:
+        overlay.setFillColorRGB(*_hex_color(color))
+        overlay.rect(x, page_height - top - height, width, height, fill=1, stroke=0)
+
+    # Número de compra en la cabecera.
+    rect_from_top(446, 17, 130, 24, white)
+    _draw_fitted_line(overlay, page_height, "Nro. de compra:", 454, 24, 75, 7.5, "Helvetica", ink)
+    _draw_fitted_line(
+        overlay, page_height, fields.get("purchase_number", ""),
+        529, 23, 42, 8.5, "Helvetica-Bold", ink,
+    )
+
+    # Tarjeta de acceso completa; el QR reconstruido se dibuja encima después.
+    overlay.setFillColorRGB(*_hex_color(mint))
+    overlay.roundRect(44, page_height - 178, 464, 122, 12, fill=1, stroke=0)
+    _draw_fitted_line(overlay, page_height, "Nombre", 178.7, 86, 150, 8, "Helvetica", ink)
+    _draw_fitted_line(
+        overlay, page_height, fields.get("attendee_name", ""),
+        178.7, 101, 225, 11, "Helvetica-Bold", ink,
+    )
+    _draw_fitted_line(overlay, page_height, "DNI", 460.7, 86, 45, 8, "Helvetica", ink)
+    _draw_fitted_line(
+        overlay, page_height, fields.get("attendee_dni", ""),
+        460.7, 101, 47, 11, "Helvetica-Bold", ink,
+    )
+    _draw_fitted_line(overlay, page_height, "Tipo de entrada", 178.7, 123, 105, 8, "Helvetica", ink)
+    _draw_fitted_line(
+        overlay, page_height, fields.get("ticket_type", ""),
+        178.7, 137, 130, 9, "Helvetica-Bold", ink,
+    )
+    if fields.get("row", "").strip():
+        _draw_fitted_line(overlay, page_height, "Fila", 330, 123, 40, 8, "Helvetica", ink)
+        _draw_fitted_line(overlay, page_height, fields.get("row", ""), 330, 137, 40, 9, "Helvetica-Bold", ink)
+    if fields.get("seat", "").strip():
+        _draw_fitted_line(overlay, page_height, "Asiento", 390, 123, 55, 8, "Helvetica", ink)
+        _draw_fitted_line(overlay, page_height, fields.get("seat", ""), 390, 137, 55, 9, "Helvetica-Bold", ink)
+
+    # Ficha del evento; la miniatura original queda intacta si no se carga una nueva.
+    rect_from_top(105, 190, 410, 54, white)
+    _draw_fitted_line(
+        overlay, page_height, fields.get("event", ""),
+        120, 197, 385, 12, "Helvetica-Bold", ink,
+    )
+    schedule = " · ".join(
+        part for part in (
+            f"{fields.get('day', '').strip()}. {fields.get('date', '').strip()}".strip(". "),
+            fields.get("time", "").strip(),
+            fields.get("location", "").strip(),
+        ) if part
+    )
+    _draw_fitted_line(overlay, page_height, schedule, 120, 222, 385, 9.5, "Helvetica", muted)
+
+    # Detalles de compra.
+    rect_from_top(45, 250, 523, 115, white)
+    overlay.setStrokeColorRGB(*_hex_color(border))
+    overlay.setLineWidth(0.8)
+    overlay.roundRect(49.2, page_height - 359.5, 513.6, 105.1, 6, fill=0, stroke=1)
+    _draw_fitted_line(overlay, page_height, "Detalles de la compra", 60.8, 266, 180, 11, "Helvetica-Bold", ink)
+    _draw_fitted_line(overlay, page_height, "Organizado por:", 60.8, 287, 130, 8, "Helvetica", muted)
+    producer = fields.get("producer", "").strip()
+    ruc = fields.get("ruc", "").strip()
+    producer_line = f"{producer} - {ruc}" if ruc else producer
+    _draw_fitted_line(overlay, page_height, producer_line, 60.8, 301, 235, 8.3, "Helvetica-Bold", ink)
+    _draw_fitted_line(overlay, page_height, "Dirección del evento:", 60.8, 321, 135, 8, "Helvetica", muted)
+    _draw_fitted_line(overlay, page_height, fields.get("address", ""), 60.8, 335, 235, 8.3, "Helvetica-Bold", ink)
+    _draw_fitted_line(overlay, page_height, "Transacción", 307.4, 287, 80, 8, "Helvetica", muted)
+    _draw_fitted_line(overlay, page_height, fields.get("transaction", ""), 307.4, 301, 108, 8, "Helvetica-Bold", ink)
+    _draw_fitted_line(overlay, page_height, "Fecha de compra", 307.4, 321, 95, 8, "Helvetica", muted)
+    _draw_fitted_line(overlay, page_height, fields.get("purchase_date", ""), 307.4, 335, 108, 8, "Helvetica-Bold", ink)
+    _draw_fitted_line(overlay, page_height, "Precio de la entrada", 430.7, 287, 90, 8, "Helvetica", muted)
+    _draw_fitted_line(overlay, page_height, fields.get("price", ""), 430.7, 303, 75, 8.3, "Helvetica-Bold", green)
+
+
 def edit_ticket_fields(
     data: bytes,
     fields: dict[str, str],
@@ -831,6 +1010,8 @@ def edit_ticket_fields(
     _draw_profile_clear_rects(overlay, height, profile, replace_identifiers)
     if template == "ticketmaster":
         _draw_ticketmaster_layout(overlay, height, fields, replace_identifiers)
+    elif template == "joinnus":
+        _draw_joinnus_layout(overlay, height, fields)
     if event_image:
         try:
             _draw_event_image(overlay, height, event_image, profile, image_mode)
@@ -858,7 +1039,7 @@ def edit_ticket_fields(
                     ticket_fields[name],
                     _wrap_location(value) if name == "location" else [value],
                 )
-    if replace_identifiers:
+    if replace_identifiers and template in {"teleticket", "ticketmaster"}:
         if template == "teleticket":
             _draw_centered_replacement(
                 overlay,
@@ -889,6 +1070,8 @@ def edit_ticket_fields(
                 "ruc", "ticket_type", "row", "seat", "category", "address",
                 "admission_type", "door", "service_charge", "total_price",
                 "producer_address",
+                "attendee_name", "attendee_dni", "transaction", "purchase_date",
+                "purchase_number",
             )
         },
         ensure_ascii=False,

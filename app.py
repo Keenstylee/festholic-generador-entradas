@@ -26,6 +26,7 @@ APP_DIR = Path(__file__).resolve().parent
 DEFAULT_TEMPLATE_PATHS = {
     "Plantilla Teleticket": APP_DIR / "assets" / "plantilla-teleticket.pdf",
     "Plantilla Ticketmaster": APP_DIR / "assets" / "plantilla-ticketmaster.pdf",
+    "Plantilla Joinnus": APP_DIR / "assets" / "plantilla-joinnus.pdf",
 }
 FESTHOLIC_GENERATION_ENDPOINT = "https://festholic.com/api/digitalizer/generation"
 MAX_SEAT_TICKETS = 60
@@ -275,7 +276,7 @@ def render_pdf_preview(data: bytes | None) -> None:
 @st.dialog("Cómo usar el digitalizador")
 def show_tutorial() -> None:
     st.markdown("""
-    1. Selecciona la plantilla Teleticket o carga un PDF compatible.
+    1. Selecciona una plantilla Teleticket, Ticketmaster o Joinnus, o carga un PDF compatible.
     2. Elige si generarás una entrada o varias entradas en un lote.
     3. Sube una o varias fotografías claras de los QR físicos, con los cuatro bordes visibles.
     4. Espera la validación y revisa los resultados.
@@ -430,7 +431,7 @@ with editor_column:
             section_intro("PDF de la entrada", "Usa una plantilla incluida o sube un PDF compatible.", "pink", 1)
             pdf_source = st.radio(
                 "Origen del documento",
-                ["Plantilla Teleticket", "Plantilla Ticketmaster", "Subir otro PDF"],
+                ["Plantilla Teleticket", "Plantilla Ticketmaster", "Plantilla Joinnus", "Subir otro PDF"],
                 horizontal=True,
                 label_visibility="collapsed",
                 key="pdf_source",
@@ -681,11 +682,22 @@ with editor_column:
             with producer_col: producer = st.text_input("Productor", detected["producer"])
             with ruc_col: ruc = st.text_input("RUC", detected["ruc"], max_chars=11)
             producer_address = ""
+            attendee_name = ""
+            attendee_dni = ""
+            transaction = ""
+            purchase_date = ""
+            purchase_number = ""
             if template_kind == "ticketmaster":
                 producer_address = st.text_input(
                     "Dirección del productor",
                     detected.get("producer_address", ""),
                 )
+            elif template_kind == "joinnus":
+                attendee_col, dni_col = st.columns([1.5, .7])
+                with attendee_col:
+                    attendee_name = st.text_input("Nombre del asistente", detected.get("attendee_name", ""))
+                with dni_col:
+                    attendee_dni = st.text_input("DNI", detected.get("attendee_dni", ""), max_chars=12)
             st.divider()
             section_intro("Fecha y ubicación", "Información visible en la cabecera de la entrada.", "cyan", 5)
             day_col, date_col, time_col, location_col = st.columns([.7, .9, .8, 1.45])
@@ -694,7 +706,7 @@ with editor_column:
             with time_col: time = st.text_input("Hora", detected["time"])
             with location_col: location = st.text_input("Lugar", detected["location"])
             address = ""
-            if template_kind == "ticketmaster":
+            if template_kind in {"ticketmaster", "joinnus"}:
                 address = st.text_input("Dirección del recinto", detected.get("address", ""))
             st.divider()
             section_intro("Información de la entrada", "Sector, ubicación asignada y precio.", "orange", 6)
@@ -720,6 +732,14 @@ with editor_column:
                 service_col, total_col = st.columns(2)
                 with service_col: service_charge = st.text_input("Cargo por servicio", detected.get("service_charge", ""))
                 with total_col: total_price = st.text_input("Precio total", detected.get("total_price", ""))
+            elif template_kind == "joinnus":
+                purchase_col, transaction_col, purchase_date_col = st.columns([.75, 1.25, 1.15])
+                with purchase_col:
+                    purchase_number = st.text_input("Nro. de compra", detected.get("purchase_number", ""))
+                with transaction_col:
+                    transaction = st.text_input("Transacción", detected.get("transaction", ""))
+                with purchase_date_col:
+                    purchase_date = st.text_input("Fecha de compra", detected.get("purchase_date", ""))
             st.divider()
             section_intro("Imagen del evento", "Reemplaza la fotografía o el logo de la plantilla.", "orange", 7)
             image_preview_col, image_control_col = st.columns([1, 2.2], vertical_alignment="center")
@@ -730,6 +750,9 @@ with editor_column:
                     if template_kind == "ticketmaster":
                         image_mode_label = "Logo completo"
                         st.caption("La franja superior se rellena automáticamente y la portada principal se muestra completa.")
+                    elif template_kind == "joinnus":
+                        image_mode_label = "Rellenar espacio"
+                        st.caption("La portada se adapta automáticamente a la miniatura del evento.")
                     else:
                         image_mode_label = st.radio("Modo de imagen", ["Logo completo", "Rellenar espacio"], horizontal=True)
             with image_preview_col:
@@ -745,6 +768,9 @@ with editor_column:
                 "admission_type": admission_type, "door": door,
                 "service_charge": service_charge, "total_price": total_price,
                 "producer_address": producer_address,
+                "attendee_name": attendee_name, "attendee_dni": attendee_dni,
+                "transaction": transaction, "purchase_date": purchase_date,
+                "purchase_number": purchase_number,
             }
             event_image_data = event_image.getvalue() if event_image is not None else None
             image_mode = "cover" if image_mode_label == "Rellenar espacio" else "contain"
@@ -755,7 +781,11 @@ with editor_column:
                             **common_fields,
                             "qr_number": ticket_identity["number"],
                             "qr_code": ticket_identity["code"],
-                            "purchase_number": ticket_identity["purchase"],
+                            "purchase_number": (
+                                purchase_number
+                                if template_kind == "joinnus" and purchase_number.strip()
+                                else ticket_identity["purchase"]
+                            ),
                             "ticket_number": ticket_identity["ticket"],
                         }
                         edited_pdf = build_ticket_pdf(pdf_data, fields, event_image_data, image_mode, qr_png)

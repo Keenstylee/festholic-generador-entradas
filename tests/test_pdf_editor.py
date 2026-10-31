@@ -177,3 +177,75 @@ def test_ticketmaster_template_is_detected_and_editable():
     assert "87654321" in text
     assert "12348765" in text
     assert "98765432109876" in text
+
+
+def test_joinnus_template_is_detected_and_fully_editable():
+    source = (ROOT / "assets" / "plantilla-joinnus.pdf").read_bytes()
+    assert detect_ticket_template(source) == "joinnus"
+    detected = inspect_ticket_fields(source)
+    assert detected == {
+        "day": "Sáb",
+        "date": "31 de oct, 2026",
+        "time": "09:00 PM",
+        "location": "CC Huayllabamba",
+        "address": "AV. ALFREDO MENDIOLA 3301",
+        "event": "Hallowtrick con el Dominio",
+        "producer": "SOSA ORTIZ ANDDY ALONSO",
+        "ruc": "10738696030",
+        "price": "CORTESÍA",
+        "ticket_type": "GENERAL",
+        "row": "",
+        "seat": "",
+        "category": "",
+        "attendee_name": "Luis Enrique Peña Flores",
+        "attendee_dni": "74711061",
+        "transaction": "849B6AFD4FBA08FC441E",
+        "purchase_date": "23/10/2026 - 07:25:09 AM",
+        "purchase_number": "36132649",
+    }
+
+    from PIL import Image
+
+    qr_data = BytesIO()
+    qr = Image.new("1", (290, 290), 1)
+    for x in range(20, 270, 20):
+        for y in range(20, 270, 20):
+            if (x // 20 + y // 20) % 3 == 0:
+                for xx in range(x, min(x + 12, 290)):
+                    for yy in range(y, min(y + 12, 290)):
+                        qr.putpixel((xx, yy), 0)
+    qr.save(qr_data, format="PNG")
+
+    result = edit_ticket_fields(
+        source,
+        {
+            **detected,
+            "event": "NUEVO FESTIVAL DE PRUEBA",
+            "day": "Sábado",
+            "date": "29 de mayo, 2027",
+            "time": "03:00 PM",
+            "location": "ESTADIO SAN MARCOS",
+            "address": "Av. Universitaria 1801, Lima",
+            "producer": "PRODUCTORA NUEVA SAC",
+            "ruc": "20999999991",
+            "price": "S/ 150.00",
+            "ticket_type": "VIP",
+            "row": "12",
+            "seat": "34",
+            "attendee_name": "ASISTENTE DE PRUEBA",
+            "attendee_dni": "12345678",
+            "transaction": "TRANSACCION123",
+            "purchase_date": "30/10/2026 - 12:00 PM",
+            "purchase_number": "99887766",
+            "qr_number": "12345",
+            "qr_code": "1234567890123456",
+        },
+        reconstructed_qr=qr_data.getvalue(),
+    )
+    text = PdfReader(BytesIO(result)).pages[0].extract_text()
+    for expected in (
+        "NUEVO FESTIVAL DE PRUEBA", "ESTADIO SAN MARCOS", "PRODUCTORA NUEVA SAC",
+        "20999999991", "S/ 150.00", "VIP", "Fila", "12", "Asiento", "34",
+        "ASISTENTE DE PRUEBA", "12345678", "TRANSACCION123", "99887766",
+    ):
+        assert expected in text
