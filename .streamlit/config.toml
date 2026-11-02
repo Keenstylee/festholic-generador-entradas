@@ -1,16 +1,16 @@
 [theme]
-base = "dark"
+base = "light"
 primaryColor = "#FF2E9F"
-backgroundColor = "#09090B"
-secondaryBackgroundColor = "#15151A"
-textColor = "#F7F7FA"
-linkColor = "#25C9E8"
-borderColor = "#29292F"
+backgroundColor = "#F5F5F7"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1D1D1F"
+linkColor = "#007C91"
+borderColor = "#DADAE0"
 showWidgetBorder = true
 baseRadius = "12px"
 buttonRadius = "12px"
-font = "Manrope:https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap"
-headingFont = "'Space Grotesk':https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap"
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap"
 baseFontSize = 14
 baseFontWeight = 400
 headingFontSizes = ["32px", "24px", "19px", "16px", "14px", "12px"]
@@ -26,11 +26,11 @@ grayColor = "#8A8A96"
 chartCategoricalColors = ["#FF2E9F", "#25C9E8", "#FF7043", "#51D98A", "#B889FF", "#F2C94C"]
 
 [theme.sidebar]
-backgroundColor = "#0D0D11"
-secondaryBackgroundColor = "#15151A"
-textColor = "#F7F7FA"
-borderColor = "#24242A"
-primaryColor = "#25C9E8"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F5F7"
+textColor = "#1D1D1F"
+borderColor = "#E2E2E7"
+primaryColor = "#007C91"
 
 [server]
 headless = true
