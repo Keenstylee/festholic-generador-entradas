@@ -232,11 +232,13 @@ st.markdown(
     .batch-summary__item,.completion-stat,.seat-summary{border-color:rgba(255,255,255,.08);background:#17171d}.batch-summary__item strong,.completion-stat strong,.seat-summary__top b{color:#fff}.st-key-seat_slots [class*="st-key-seat_slot_"]{border-color:rgba(255,255,255,.08);background:#15161c}.seat-badge{background:rgba(37,201,232,.12);color:#25c9e8}.seat-badge--ok{background:rgba(81,217,138,.18);color:#51d98a}.seat-badge--bad{background:rgba(255,112,67,.18);color:#ff7043}
     .st-key-preview_card [data-testid="stImage"]{border-color:rgba(255,255,255,.055);background:#08080a}.st-key-preview_card [data-testid="stImage"] img{box-shadow:0 15px 38px rgba(0,0,0,.36)}
     [data-testid="stDialog"]:has(.completion-modal) [role="dialog"]{border-color:rgba(255,255,255,.11);background:#131318;box-shadow:0 30px 80px rgba(0,0,0,.48)}.completion-modal__title{color:#fff}.completion-modal__copy{color:#a4a4af}.support-card{border-color:rgba(255,112,67,.20);background:#171719}.support-card strong{color:#fff}.support-card p{color:#a4a4af}.support-card__account{color:#fff}
+    .app-visual{position:relative;min-height:118px;overflow:hidden;display:flex;align-items:flex-end;margin:-3px 0 18px;padding:18px 20px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:linear-gradient(90deg,rgba(8,8,11,.94) 0%,rgba(8,8,11,.66) 48%,rgba(8,8,11,.12) 100%),url("https://images.unsplash.com/photo-1574154883606-19fa4f836c54?auto=format&fit=crop&w=1800&q=82") center 45%/cover no-repeat;box-shadow:0 18px 42px rgba(0,0,0,.22)}.app-visual::after{content:"";position:absolute;left:20px;top:0;width:150px;height:3px;background:linear-gradient(90deg,#ff2e9f 0 38%,#ff7043 38% 68%,#25c9e8 68% 100%)}.app-visual__copy{position:relative;z-index:1;max-width:430px}.app-visual__copy strong{display:block;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:18px;letter-spacing:-.025em}.app-visual__copy span{display:block;margin-top:4px;color:#d2d2da;font-size:10.5px;line-height:1.45}
+    .completion-modal{min-height:116px;overflow:hidden;padding:18px 44% 18px 18px!important;border-radius:15px;background:linear-gradient(90deg,rgba(12,12,16,.98) 0%,rgba(12,12,16,.90) 52%,rgba(12,12,16,.16) 100%),url("https://images.unsplash.com/photo-1747660356755-f261e3a701ca?auto=format&fit=crop&w=1200&q=82") center/cover no-repeat}.completion-modal__copy{color:#d1d1d8!important}
+    @media(max-width:560px){.app-visual{min-height:102px;padding:15px;background-position:center}.app-visual__copy strong{font-size:16px}.app-visual__copy span{max-width:260px;font-size:9.5px}.completion-modal{min-height:108px;padding:16px 34% 16px 15px!important}.completion-modal__copy{font-size:10px}}
     </style>
     """,
     unsafe_allow_html=True,
 )
-
 
 def current_festholic_token() -> str:
     value = st.query_params.get("festholic_token", "")
@@ -356,14 +358,24 @@ def safe_pdf_filename(value: str) -> str:
     name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", value).strip().rstrip(".")
     if name.lower().endswith(".pdf"):
         name = name[:-4].strip().rstrip(".")
-    return f"{name or 'entrada_digitalizada'}.pdf"
+    return f"{name or 'E-ticket'}.pdf"
 
 
-def safe_filename_stem(value: str, fallback: str = "entradas_digitalizadas") -> str:
+def safe_filename_stem(value: str, fallback: str = "E-ticket") -> str:
     name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", value).strip().rstrip(".")
     if name.lower().endswith(".zip"):
         name = name[:-4].strip().rstrip(".")
     return name or fallback
+
+
+def default_ticket_name(row: str = "", seat: str = "") -> str:
+    """Construye el nombre automático con la ubicación cuando corresponde."""
+    parts = ["E-ticket"]
+    if seat.strip():
+        parts.extend(["Asiento", safe_filename_stem(seat.strip(), "x")])
+    if row.strip():
+        parts.extend(["Fila", safe_filename_stem(row.strip(), "x")])
+    return "-".join(parts)
 
 
 def build_ticket_zip(entries: list[tuple[str, bytes]]) -> bytes:
@@ -494,8 +506,7 @@ def show_generation_dialog(
         type="primary",
         icon=":material/download:",
         width="stretch",
-        on_click=complete_download,
-        args=(entry_count, mode),
+        on_click="ignore",
         key=f"modal_download_{mode}_{download_filename}",
     )
     st.caption("Guarda tus entradas en un lugar seguro y no compartas sus códigos QR.")
@@ -535,6 +546,18 @@ st.markdown(
       <div class="app-progress__item"><span class="app-progress__number">02</span><span class="app-progress__copy"><strong>Código QR</strong><span>Sube y valida</span></span></div>
       <div class="app-progress__item"><span class="app-progress__number">03</span><span class="app-progress__copy"><strong>Personaliza</strong><span>Edita los datos</span></span></div>
       <div class="app-progress__item"><span class="app-progress__number">04</span><span class="app-progress__copy"><strong>Exporta</strong><span>Revisa y descarga</span></span></div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div class="app-visual" role="img" aria-label="Público disfrutando de un concierto">
+      <div class="app-visual__copy">
+        <strong>Entradas listas para volver al evento</strong>
+        <span>Del QR físico a un E-ticket claro, personalizado y preparado para descargar.</span>
+      </div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -963,7 +986,7 @@ with editor_column:
                             used_seats[(item_row, item_seat)] = item["name"]
                             fields["row"] = item_row
                             fields["seat"] = item_seat
-                            batch_seat_labels[item["key"]] = f"-F{safe_filename_stem(item_row, 'x')}-A{safe_filename_stem(item_seat, 'x')}"
+                            batch_seat_labels[item["key"]] = f"-Asiento-{safe_filename_stem(item_seat, 'x')}-Fila-{safe_filename_stem(item_row, 'x')}"
                         try:
                             generated_pdf = build_ticket_pdf(pdf_data, fields, event_image_data, image_mode, item["png"])
                             batch_entries.append((item["key"], generated_pdf))
@@ -982,7 +1005,7 @@ with preview_column:
         elif generation_mode == "Varias entradas" and batch_entries:
             base_name = st.text_input(
                 "Nombre base de los PDF",
-                value=f"digitalizadas_{Path(pdf_name).stem}",
+                value="E-ticket",
                 key=f"batch_download_name_{pdf_name}",
                 help="Los archivos se numerarán automáticamente: nombre-001.pdf, nombre-002.pdf…",
             )
@@ -1006,6 +1029,7 @@ with preview_column:
                 width="stretch",
                 key=f"open_batch_result_{safe_base}",
             ):
+                complete_download(len(numbered_entries), "batch")
                 show_generation_dialog(
                     entry_names=[filename for filename, _ in numbered_entries],
                     download_data=zip_data,
@@ -1020,7 +1044,7 @@ with preview_column:
         elif edited_pdf is not None:
             download_name = st.text_input(
                 "Nombre del PDF",
-                value=f"digitalizada_{Path(pdf_name).stem}",
+                value=default_ticket_name(row, seat),
                 key=f"download_name_{pdf_name}",
                 help="Puedes escribir el nombre con o sin la extensión .pdf.",
             )
@@ -1033,6 +1057,7 @@ with preview_column:
                 width="stretch",
                 key=f"open_single_result_{single_filename}",
             ):
+                complete_download(1, "single")
                 show_generation_dialog(
                     entry_names=[single_filename],
                     download_data=edited_pdf,
