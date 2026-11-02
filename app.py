@@ -29,8 +29,6 @@ DEFAULT_TEMPLATE_PATHS = {
     "Plantilla Joinnus": APP_DIR / "assets" / "plantilla-joinnus.pdf",
 }
 FESTHOLIC_GENERATION_ENDPOINT = "https://festholic.com/api/digitalizer/generation"
-FESTHOLIC_ACCESS_ENDPOINT = "https://festholic.com/api/digitalizer/verify"
-FESTHOLIC_TOOL_URL = "https://festholic.com/generador-pdf"
 MAX_SEAT_TICKETS = 60
 
 st.set_page_config(page_title="Digitalizador de entradas | Festholic", page_icon="🎟️", layout="wide")
@@ -243,50 +241,6 @@ st.markdown(
 def current_festholic_token() -> str:
     value = st.query_params.get("festholic_token", "")
     return str(value[0] if isinstance(value, list) and value else value or "")
-
-
-def verify_festholic_access(token: str) -> dict:
-    if not token:
-        return {"allowed": False, "error": "Falta la autorización de Festholic."}
-    request = Request(
-        FESTHOLIC_ACCESS_ENDPOINT,
-        data=json.dumps({"token": token}).encode("utf-8"),
-        headers={"Content-Type": "application/json", "User-Agent": "Festholic-Digitalizer/1.0"},
-        method="POST",
-    )
-    try:
-        with urlopen(request, timeout=6) as response:
-            result = json.loads(response.read().decode("utf-8"))
-            return result if isinstance(result, dict) else {"allowed": False}
-    except (HTTPError, URLError, TimeoutError, ValueError, json.JSONDecodeError):
-        return {"allowed": False, "error": "No se pudo validar el permiso de acceso."}
-
-
-def require_festholic_access() -> dict:
-    if st.session_state.get("festholic_access_granted"):
-        return st.session_state.get("festholic_access", {"allowed": True})
-    token = current_festholic_token()
-    access = verify_festholic_access(token)
-    if access.get("allowed"):
-        st.session_state.festholic_access_granted = True
-        st.session_state.festholic_access = access
-        return access
-    st.error(
-        "Esta herramienta requiere una cuenta autorizada de Festholic. El enlace directo ya no permite el acceso.",
-        icon=":material/lock:",
-    )
-    st.link_button(
-        "Abrir desde Festholic",
-        FESTHOLIC_TOOL_URL,
-        icon=":material/login:",
-        type="primary",
-        width="stretch",
-    )
-    st.caption("Si ya realizaste el pago, solicita al administrador que active el permiso Digitalizador en tu cuenta.")
-    st.stop()
-
-
-festholic_access = require_festholic_access()
 
 
 @st.cache_data(show_spinner=False)
