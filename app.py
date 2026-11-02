@@ -106,6 +106,55 @@ st.markdown(
     .st-key-qr_result_card [data-testid="stImage"] img{max-height:240px;object-fit:contain}
     @media(max-width:900px){.st-key-qr_result_card [data-testid="stHorizontalBlock"]{flex-wrap:wrap!important;gap:6px!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:0!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3){flex:0 0 calc(44% - 4px)!important;width:calc(44% - 4px)!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex:0 0 8%!important;width:8%!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 100%!important;width:100%!important}.qr-process{padding:12px}.st-key-qr_result_card [data-testid="stImage"] img{max-height:170px}}
     @media(max-width:900px){.batch-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}.batch-summary__item{padding:8px 9px}.batch-summary__item strong{font-size:15px}.batch-summary__item span{font-size:8.5px}.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3),.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 22%!important;width:22%!important}.completion-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.completion-stat{padding:9px}.support-card__account{display:grid;gap:4px}}
+
+    /* Festholic App UI — interfaz sobria, táctil y centrada en la tarea */
+    :root{--fh-bg:#09090b;--fh-deep:#09090b;--fh-panel:#101014;--fh-card:#131318;--fh-card-deep:#101014;--fh-input:#18181e;--fh-text:#f7f7fa;--fh-muted:#a4a4af;--fh-faint:#73737e;--fh-border:rgba(255,255,255,.085)}
+    html,body,[data-testid="stAppViewContainer"],.stApp{background:var(--fh-bg)!important}
+    [data-testid="stAppViewContainer"]{background:var(--fh-bg)!important}
+    [data-testid="stAppViewContainer"]::before{display:none!important}
+    [data-testid="stMainBlockContainer"]{max-width:1520px;padding:22px 26px 64px}
+    [data-testid="stVerticalBlock"]{gap:.85rem}
+    h1,h2,h3,[data-testid="stHeading"]{color:var(--fh-text);letter-spacing:-.035em}
+    .app-header{display:flex;align-items:center;gap:14px;min-width:0;padding:4px 0 12px}
+    .app-header__mark{width:42px;height:42px;flex:0 0 auto;display:grid;place-items:center;border:1px solid rgba(37,201,232,.25);border-radius:13px;background:#11171a;color:var(--fh-cyan);box-shadow:inset 0 1px 0 rgba(255,255,255,.055)}
+    .app-header__mark svg{width:22px;height:22px}.app-header__copy{min-width:0;flex:1}.app-header__eyebrow{margin-bottom:3px;color:#8b8b96;font-size:9px;font-weight:800;letter-spacing:.15em;text-transform:uppercase}.app-header h1{margin:0;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:clamp(25px,2.5vw,32px);font-weight:700;line-height:1.05}.app-header p{margin:5px 0 0;color:#92929d;font-size:11.5px;line-height:1.45}
+    .app-progress{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:1px 0 18px;padding:5px;border:1px solid rgba(255,255,255,.07);border-radius:15px;background:#0e0e12;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+    .app-progress__item{position:relative;display:flex;align-items:center;gap:9px;min-width:0;padding:9px 11px;border-radius:11px;color:#858590}.app-progress__item:first-child{background:#17171d;color:#fff}.app-progress__number{width:23px;height:23px;flex:0 0 auto;display:grid;place-items:center;border:1px solid rgba(255,255,255,.11);border-radius:8px;background:#111116;color:#a9a9b4;font-size:9px;font-weight:800}.app-progress__item:first-child .app-progress__number{border-color:rgba(37,201,232,.30);background:rgba(37,201,232,.11);color:var(--fh-cyan)}.app-progress__copy strong{display:block;color:inherit;font-size:10.5px;font-weight:800}.app-progress__copy span{display:block;margin-top:1px;color:#696974;font-size:8px}
+    [data-testid="stVerticalBlockBorderWrapper"]{border-color:rgba(255,255,255,.075)!important;border-radius:20px!important;background:#111115!important;box-shadow:0 1px 0 rgba(255,255,255,.025),0 18px 50px rgba(0,0,0,.18)!important}
+    [data-testid="stVerticalBlockBorderWrapper"]>[data-testid="stVerticalBlock"]{padding:19px 20px!important}
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.app-header){overflow:visible;border:0!important;background:transparent!important;box-shadow:none!important}
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.app-header)>[data-testid="stVerticalBlock"]{padding:0!important}
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.app-header)::after{display:none!important}
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.preview-marker){top:18px;background:#0f0f13!important;box-shadow:0 20px 55px rgba(0,0,0,.28)!important}
+    .st-key-pdf_card,.st-key-qr_card{min-height:236px}
+    [data-testid="stVerticalBlockBorderWrapper"]:has(.card-accent)::before{top:22px;left:0;width:2px;height:42px;border-radius:0 3px 3px 0}
+    .section-intro{margin:0 0 13px}.section-intro strong{font-size:15px;font-weight:700}.section-intro span{color:#898994;font-size:10px}.section-intro--accent{padding-left:0;margin-bottom:15px}.section-intro--accent::before{display:none}
+    .section-intro--step{grid-template-columns:29px minmax(0,1fr);gap:10px}.section-intro__number{width:29px;height:29px;border-radius:9px!important;font-size:10px!important}
+    [data-baseweb="input"]>div,[data-baseweb="select"]>div{min-height:44px;border:1px solid rgba(255,255,255,.075)!important;border-radius:12px!important;background:#18181e!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025)}
+    [data-baseweb="input"]>div:hover,[data-baseweb="select"]>div:hover{border-color:rgba(255,255,255,.14)!important}
+    [data-baseweb="input"]>div:focus-within,[data-baseweb="select"]>div:focus-within{border-color:rgba(37,201,232,.56)!important;box-shadow:0 0 0 3px rgba(37,201,232,.09)!important}
+    [data-testid="stWidgetLabel"] p{color:#b8b8c2;font-size:10px;font-weight:650;letter-spacing:.01em}
+    [data-testid="stFileUploaderDropzone"]{min-height:96px;border-color:rgba(37,201,232,.27)!important;border-radius:15px!important;background:#11181b!important;transform:none!important}
+    [data-testid="stFileUploaderDropzone"]:hover{border-color:rgba(37,201,232,.54)!important;background:#131d20!important;transform:none!important}
+    [data-testid="stFileUploaderDropzone"] button{border:1px solid rgba(37,201,232,.24)!important;border-radius:11px!important;background:rgba(37,201,232,.10)!important;box-shadow:none!important}
+    .template-ready-zone{min-height:82px;padding:7px 2px}.template-ready-zone__icon{width:32px;height:32px;border-radius:10px}
+    [data-testid="stRadio"],[data-testid="stSegmentedControl"]{color:#fff}
+    [data-testid="stSegmentedControl"]>div{padding:3px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:#0d0d11}
+    [data-testid="stSegmentedControl"] button{min-height:36px;border-radius:9px!important;font-size:11px;font-weight:700}
+    [data-testid="stSegmentedControl"] button[aria-pressed="true"]{background:#24242b!important;color:#fff!important;box-shadow:0 1px 4px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06)}
+    .stButton>button,.stDownloadButton>button{min-height:42px;border-radius:12px!important;font-weight:750!important;transition:transform .15s ease,border-color .15s ease,background .15s ease,filter .15s ease}
+    .stButton>button[kind="secondary"]{border:1px solid rgba(255,255,255,.09);background:#17171c;color:#e9e9ee;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+    .stButton>button[kind="secondary"]:hover{border-color:rgba(255,255,255,.17);background:#1d1d23;color:#fff}
+    .stButton>button[kind="primary"],.stDownloadButton>button[kind="primary"]{min-height:52px;background:var(--fh-pink)!important;box-shadow:0 10px 25px rgba(255,46,159,.20),inset 0 1px 0 rgba(255,255,255,.20)!important}
+    .stButton>button[kind="primary"]:hover,.stDownloadButton>button[kind="primary"]:hover{filter:brightness(1.07);transform:translateY(-1px)}
+    [data-testid="stAlert"]{border-color:rgba(255,255,255,.07)!important;border-radius:13px;background:#15151a!important}
+    [data-testid="stImage"] img{border-color:rgba(255,255,255,.075);border-radius:12px}
+    hr{display:none!important}
+    .qr-process{border-radius:15px;background:#111814;box-shadow:none}.batch-summary__item,.completion-stat{background:#17171d}.seat-summary{background:#17171d}
+    .st-key-preview_card [data-testid="stImage"]{padding:12px;border:1px solid rgba(255,255,255,.055);border-radius:15px;background:#08080a}.st-key-preview_card [data-testid="stImage"] img{max-height:690px;width:100%;object-fit:contain;border:0;border-radius:7px;box-shadow:0 15px 38px rgba(0,0,0,.36)}
+    .st-key-preview_card [data-testid="stCaptionContainer"]{font-size:9.5px}.st-key-preview_card [data-testid="stWidgetLabel"] p{font-size:9px}
+    @media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:14px 12px 44px}.app-header{padding-top:1px}.app-header__mark{width:38px;height:38px;border-radius:12px}.app-header h1{font-size:25px}.app-header p{font-size:10.5px}.app-progress{grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:13px;padding:4px}.app-progress__item{justify-content:center;padding:8px 4px}.app-progress__copy span{display:none}.app-progress__copy strong{font-size:8.5px}.app-progress__number{width:21px;height:21px;border-radius:7px}[data-testid="stVerticalBlockBorderWrapper"]>[data-testid="stVerticalBlock"]{padding:16px!important}.st-key-pdf_card,.st-key-qr_card{min-height:0}}
+    @media(max-width:560px){.app-progress__copy{display:none}.app-progress__item{padding:7px 3px}.app-header__eyebrow{font-size:8px}.app-header h1{font-size:23px}.app-header p{max-width:260px}.section-intro strong{font-size:14px}}
     </style>
     """,
     unsafe_allow_html=True,
@@ -389,11 +438,26 @@ with st.container(border=False):
     title_column, help_column = st.columns([8, 2], vertical_alignment="center")
     with title_column:
         st.markdown("""
-        <div class="tool-identity"><span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 20h2"/></svg></span><span><h1>Digitalizador de entradas</h1><p>Recupera y edita entradas digitales con la misma validez del código QR.</p></span></div>
+        <div class="app-header">
+          <span class="app-header__mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 20h2"/></svg></span>
+          <span class="app-header__copy"><span class="app-header__eyebrow">Festholic tools</span><h1>Digitalizador de entradas</h1><p>Reconstruye el QR, personaliza la entrada y descarga el resultado.</p></span>
+        </div>
         """, unsafe_allow_html=True)
     with help_column:
-        if st.button("¿Cómo usar?", icon=":material/help_outline:", width="stretch"):
+        if st.button("Guía", icon=":material/help_outline:", width="stretch"):
             show_tutorial()
+
+st.markdown(
+    """
+    <div class="app-progress" aria-label="Flujo de digitalización">
+      <div class="app-progress__item"><span class="app-progress__number">01</span><span class="app-progress__copy"><strong>Plantilla</strong><span>Elige el formato</span></span></div>
+      <div class="app-progress__item"><span class="app-progress__number">02</span><span class="app-progress__copy"><strong>Código QR</strong><span>Sube y valida</span></span></div>
+      <div class="app-progress__item"><span class="app-progress__number">03</span><span class="app-progress__copy"><strong>Personaliza</strong><span>Edita los datos</span></span></div>
+      <div class="app-progress__item"><span class="app-progress__number">04</span><span class="app-progress__copy"><strong>Exporta</strong><span>Revisa y descarga</span></span></div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 pdf_data: bytes | None = None
@@ -421,7 +485,7 @@ ticket_identity = st.session_state.ticket_identity
 if "purchase" not in ticket_identity or "ticket" not in ticket_identity:
     ticket_identity.update(new_ticket_identity())
 
-editor_column, preview_column = st.columns([66, 34], gap="medium")
+editor_column, preview_column = st.columns([64, 36], gap="medium")
 
 with editor_column:
     source_left, source_right = st.columns(2, gap="small")
@@ -429,11 +493,9 @@ with editor_column:
         with st.container(border=True, key="pdf_card"):
             st.markdown('<div class="card-accent card-accent--pdf"></div>', unsafe_allow_html=True)
             section_intro("PDF de la entrada", "Usa una plantilla incluida o sube un PDF compatible.", "pink", 1)
-            pdf_source = st.radio(
-                "Origen del documento",
+            pdf_source = st.selectbox(
+                "Plantilla base",
                 ["Plantilla Teleticket", "Plantilla Ticketmaster", "Plantilla Joinnus", "Subir otro PDF"],
-                horizontal=True,
-                label_visibility="collapsed",
                 key="pdf_source",
             )
             if pdf_source in DEFAULT_TEMPLATE_PATHS:
@@ -460,14 +522,15 @@ with editor_column:
         with st.container(border=True, key="qr_card"):
             st.markdown('<div class="card-accent card-accent--qr"></div>', unsafe_allow_html=True)
             section_intro("Fotografía del código QR", "Sube un QR o genera varias entradas en un solo lote.", "cyan", 2)
-            generation_mode = st.radio(
+            generation_mode = st.segmented_control(
                 "Tipo de generación",
                 ["Una entrada", "Varias entradas"],
-                horizontal=True,
+                default="Una entrada",
                 key="generation_mode",
+                width="stretch",
             )
             if generation_mode == "Varias entradas":
-                seat_mode = st.checkbox(
+                seat_mode = st.toggle(
                     "Son entradas con asiento (fila y asiento distintos)",
                     key="batch_seat_mode",
                     help="Podrás indicar la fila y el asiento de cada QR. Si no la marcas, todas las entradas usan la misma fila y asiento.",
@@ -698,7 +761,6 @@ with editor_column:
                     attendee_name = st.text_input("Nombre del asistente", detected.get("attendee_name", ""))
                 with dni_col:
                     attendee_dni = st.text_input("DNI", detected.get("attendee_dni", ""), max_chars=12)
-            st.divider()
             section_intro("Fecha y ubicación", "Información visible en la cabecera de la entrada.", "cyan", 5)
             day_col, date_col, time_col, location_col = st.columns([.7, .9, .8, 1.45])
             with day_col: day = st.text_input("Día", detected["day"])
@@ -708,7 +770,6 @@ with editor_column:
             address = ""
             if template_kind in {"ticketmaster", "joinnus"}:
                 address = st.text_input("Dirección del recinto", detected.get("address", ""))
-            st.divider()
             section_intro("Información de la entrada", "Sector, ubicación asignada y precio.", "orange", 6)
             admission_type = ""
             door = ""
@@ -740,7 +801,6 @@ with editor_column:
                     transaction = st.text_input("Transacción", detected.get("transaction", ""))
                 with purchase_date_col:
                     purchase_date = st.text_input("Fecha de compra", detected.get("purchase_date", ""))
-            st.divider()
             section_intro("Imagen del evento", "Reemplaza la fotografía o el logo de la plantilla.", "orange", 7)
             image_preview_col, image_control_col = st.columns([1, 2.2], vertical_alignment="center")
             with image_control_col:
@@ -754,7 +814,12 @@ with editor_column:
                         image_mode_label = "Rellenar espacio"
                         st.caption("La portada se adapta automáticamente a la miniatura del evento.")
                     else:
-                        image_mode_label = st.radio("Modo de imagen", ["Logo completo", "Rellenar espacio"], horizontal=True)
+                        image_mode_label = st.segmented_control(
+                            "Modo de imagen",
+                            ["Logo completo", "Rellenar espacio"],
+                            default="Logo completo",
+                            width="stretch",
+                        )
             with image_preview_col:
                 if event_image is not None: st.image(event_image, caption="Imagen seleccionada", width="stretch")
                 else: st.caption("Sin imagen nueva")
