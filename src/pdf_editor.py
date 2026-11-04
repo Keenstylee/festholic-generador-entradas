@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 from datetime import datetime
 import json
+from pathlib import Path
 import re
 
 import pymupdf
@@ -112,6 +113,7 @@ TICKETMASTER_EDITABLE_IDENTIFIER_ORIGINS = (
 )
 
 JOINNUS_FIELDS = {}
+JOINNUS_LOGO_PATH = Path(__file__).resolve().parents[1] / "assets" / "joinnus-logo.png"
 
 TEMPLATE_PROFILES = {
     "teleticket": {
@@ -771,17 +773,38 @@ def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes, profile:
                 overlay.setStrokeColorRGB(*_hex_color("#9aa8b6"))
                 overlay.setLineWidth(0.7)
                 overlay.circle(center_x, center_y, 10.2, fill=1, stroke=1)
-                overlay.setFillColorRGB(*_hex_color("#19dbc1"))
-                overlay.circle(center_x, center_y, 8.4, fill=1, stroke=0)
-                overlay.setStrokeColorRGB(*_hex_color("#07141c"))
-                overlay.setLineWidth(2.1)
-                overlay.setLineCap(1)
-                mark = overlay.beginPath()
-                mark.moveTo(center_x - 5.0, center_y + 2.2)
-                mark.curveTo(center_x - 5.0, center_y - 2.6, center_x - 1.0, center_y - 3.5, center_x - 1.0, center_y + 1.4)
-                mark.moveTo(center_x + 1.2, center_y + 2.2)
-                mark.curveTo(center_x + 1.2, center_y - 2.8, center_x + 5.0, center_y - 3.3, center_x + 5.0, center_y + 2.2)
-                overlay.drawPath(mark, fill=0, stroke=1)
+                try:
+                    with Image.open(JOINNUS_LOGO_PATH) as source_logo:
+                        source_logo = source_logo.convert("RGBA")
+                        alpha_bounds = source_logo.getchannel("A").getbbox()
+                        if alpha_bounds is None:
+                            raise ValueError("El logo Joinnus no contiene píxeles visibles.")
+                        icon_size = alpha_bounds[3] - alpha_bounds[1]
+                        icon = source_logo.crop(
+                            (
+                                alpha_bounds[0],
+                                alpha_bounds[1],
+                                alpha_bounds[0] + icon_size,
+                                alpha_bounds[3],
+                            )
+                        )
+                        icon = ImageOps.contain(icon, (160, 160), method=Image.Resampling.LANCZOS)
+                        logo_buffer = BytesIO()
+                        icon.save(logo_buffer, format="PNG")
+                        logo_buffer.seek(0)
+                        logo_size = 17.2
+                        overlay.drawImage(
+                            ImageReader(logo_buffer),
+                            center_x - logo_size / 2,
+                            center_y - logo_size / 2,
+                            width=logo_size,
+                            height=logo_size,
+                            preserveAspectRatio=True,
+                            mask="auto",
+                        )
+                except (OSError, ValueError):
+                    overlay.setFillColorRGB(*_hex_color("#00e5b5"))
+                    overlay.circle(center_x, center_y, 8.4, fill=1, stroke=0)
     except (OSError, ValueError) as exc:
         raise ValueError("El QR reconstruido no es una imagen válida.") from exc
 
