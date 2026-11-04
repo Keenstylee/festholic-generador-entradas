@@ -1025,9 +1025,12 @@ def _draw_joinnus_layout(
         460.7, 101, 47, 11, "Helvetica-Bold", ink,
     )
     _draw_fitted_line(overlay, page_height, "Tipo de entrada", 178.7, 123, 105, 8, "Helvetica", ink)
+    ticket_type = fields.get("ticket_type", "").strip()
+    category = fields.get("category", "").strip()
+    access_label = " · ".join(part for part in (ticket_type, category) if part)
     _draw_fitted_line(
-        overlay, page_height, fields.get("ticket_type", ""),
-        178.7, 137, 130, 9, "Helvetica-Bold", ink,
+        overlay, page_height, access_label,
+        178.7, 137, 145, 9, "Helvetica-Bold", ink,
     )
     if fields.get("row", "").strip():
         _draw_fitted_line(overlay, page_height, "Fila", 330, 123, 40, 8, "Helvetica", ink)

@@ -30,6 +30,24 @@ DEFAULT_TEMPLATE_PATHS = {
     "Plantilla Ticketmaster": APP_DIR / "assets" / "plantilla-ticketmaster.pdf",
     "Plantilla Joinnus": APP_DIR / "assets" / "plantilla-joinnus.pdf",
 }
+DEFAULT_JOINNUS_EVENT_IMAGE_PATH = APP_DIR / "assets" / "sound-music-festival-2026.jpg"
+JOINNUS_SOUND_MUSIC_DEFAULTS = {
+    "event": "SOUND MUSIC FESTIVAL 2026",
+    "day": "Sábado",
+    "date": "07 de noviembre, 2026",
+    "time": "03:00 PM",
+    "location": "ESTADIO NACIONAL",
+    "address": "CL. JOSÉ DÍAZ S/N, CERCADO DE LIMA, LIMA",
+    "ticket_type": "OCCIDENTE",
+    "category": "CORTESÍA",
+    "price": "S/ 0.00",
+    "row": "",
+    "seat": "",
+    "producer": "",
+    "ruc": "",
+    "attendee_name": "PROHIBIDA SU VENTA",
+    "attendee_dni": "00000000",
+}
 FESTHOLIC_GENERATION_ENDPOINT = "https://festholic.com/api/digitalizer/generation"
 MAX_SEAT_TICKETS = 60
 
@@ -860,7 +878,7 @@ with editor_column:
             if pdf_source == "Plantilla Teleticket" and detected["category"].isdigit():
                 detected["category"] = "PRE-VENTA IBK"
             elif pdf_source == "Plantilla Joinnus":
-                detected["attendee_name"] = "PROHIBIDA SU VENTA"
+                detected.update(JOINNUS_SOUND_MUSIC_DEFAULTS)
                 detected["purchase_date"] = ticket_identity["purchase_date"]
                 detected["purchase_number"] = ticket_identity["purchase"]
                 detected["transaction"] = ticket_identity["transaction"]
@@ -968,6 +986,12 @@ with editor_column:
                         )
             with image_preview_col:
                 if event_image is not None: st.image(event_image, caption="Imagen seleccionada", width="stretch")
+                elif template_kind == "joinnus" and DEFAULT_JOINNUS_EVENT_IMAGE_PATH.exists():
+                    st.image(
+                        str(DEFAULT_JOINNUS_EVENT_IMAGE_PATH),
+                        caption="Portada predeterminada de Sound Music Festival",
+                        width="stretch",
+                    )
                 else: st.caption("Sin imagen nueva")
 
         if qr_ready:
@@ -983,7 +1007,12 @@ with editor_column:
                 "transaction": transaction, "purchase_date": purchase_date,
                 "purchase_number": purchase_number,
             }
-            event_image_data = event_image.getvalue() if event_image is not None else None
+            if event_image is not None:
+                event_image_data = event_image.getvalue()
+            elif template_kind == "joinnus" and DEFAULT_JOINNUS_EVENT_IMAGE_PATH.exists():
+                event_image_data = DEFAULT_JOINNUS_EVENT_IMAGE_PATH.read_bytes()
+            else:
+                event_image_data = None
             image_mode = "cover" if image_mode_label == "Rellenar espacio" else "contain"
             if generation_mode == "Una entrada":
                 try:
