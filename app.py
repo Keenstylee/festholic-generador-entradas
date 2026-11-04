@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import re
 import secrets
+import time
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import uuid
@@ -370,11 +371,14 @@ def register_generation(entry_count: int, mode: str, event_id: str) -> bool:
         headers={"Content-Type": "application/json", "User-Agent": "Festholic-Digitalizer/1.0"},
         method="POST",
     )
-    try:
-        with urlopen(request, timeout=5) as response:
-            return 200 <= response.status < 300
-    except (HTTPError, URLError, TimeoutError, ValueError):
-        return False
+    for attempt in range(3):
+        try:
+            with urlopen(request, timeout=7) as response:
+                return 200 <= response.status < 300
+        except (HTTPError, URLError, TimeoutError, ValueError):
+            if attempt < 2:
+                time.sleep(0.4 * (attempt + 1))
+    return False
 
 
 def complete_download(entry_count: int, mode: str) -> None:
@@ -510,6 +514,13 @@ def show_generation_dialog(
         st.write(f":material/check_circle: {entry_count} PDF {'generados' if plural else 'generado'} correctamente")
         if mode == "batch":
             st.write(":material/check_circle: Archivos organizados en un ZIP")
+
+    if st.session_state.get("last_generation_tracked") is False:
+        st.warning(
+            "La entrada se generó correctamente, pero el contador de uso no pudo confirmarse. "
+            "Mantén esta ventana abierta y vuelve a pulsar Digitalizar para reintentarlo.",
+            icon=":material/sync_problem:",
+        )
 
     st.markdown(
         f"""
