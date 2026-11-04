@@ -6,9 +6,10 @@ import json
 import re
 
 import pymupdf
-from PIL import Image, ImageOps
+from PIL import Image, ImageDraw, ImageOps
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import ContentStream
+from reportlab.lib.colors import HexColor
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
@@ -60,7 +61,7 @@ TICKETMASTER_DEFAULTS = {
 
 JOINNUS_DEFAULTS = {
     "address": "AV. ALFREDO MENDIOLA 3301",
-    "attendee_name": "Luis Enrique Peña Flores",
+    "attendee_name": "PROHIBIDA SU VENTA",
     "attendee_dni": "74711061",
     "transaction": "849B6AFD4FBA08FC441E",
     "purchase_date": "23/10/2026 - 07:25:09 AM",
@@ -154,9 +155,9 @@ TEMPLATE_PROFILES = {
         "fields": JOINNUS_FIELDS,
         "editable": (),
         "identifiers": (),
-        "event_images": ((30.5, 194.7, 81.8, 45.2, 0, "#ffffff", "cover"),),
-        "qr_area": (65.8, 73.4, 90.3, 90.3),
-        "qr_clear": (54, 66, 112, 107),
+        "event_images": ((49.2, 194.7, 46, 46, 0, "#ffffff", "cover", 7),),
+        "qr_area": (68.7, 76.2, 84.5, 84.5),
+        "qr_clear": (60.2, 68.2, 101.5, 101.5),
         "number_prefix": "",
         "clear_rects": (),
         "identifier_clear_rects": (),
@@ -678,9 +679,13 @@ def _draw_event_image(
         for image_spec in profile["event_images"]:
             x, top, width, height, padding, background = image_spec[:6]
             area_mode = image_spec[6] if len(image_spec) > 6 else mode
+            corner_radius = image_spec[7] if len(image_spec) > 7 else 0
             bottom = page_height - top - height
             overlay.setFillColorRGB(*_hex_color(background))
-            overlay.rect(x, bottom, width, height, fill=1, stroke=0)
+            if corner_radius:
+                overlay.roundRect(x, bottom, width, height, corner_radius, fill=1, stroke=0)
+            else:
+                overlay.rect(x, bottom, width, height, fill=1, stroke=0)
             content_x = x + padding
             content_bottom = bottom + padding
             content_width = width - (padding * 2)
@@ -693,6 +698,15 @@ def _draw_event_image(
                 prepared = ImageOps.fit(source, target_size, method=Image.Resampling.LANCZOS)
             else:
                 prepared = ImageOps.contain(source, target_size, method=Image.Resampling.LANCZOS)
+
+            if corner_radius:
+                mask = Image.new("L", prepared.size, 0)
+                ImageDraw.Draw(mask).rounded_rectangle(
+                    (0, 0, prepared.width - 1, prepared.height - 1),
+                    radius=max(1, round(corner_radius * 4)),
+                    fill=255,
+                )
+                prepared.putalpha(mask)
 
             png = BytesIO()
             prepared.save(png, format="PNG")
@@ -720,7 +734,18 @@ def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes, profile:
     bottom = page_height - top - height
     clear_x, clear_top, clear_width, clear_height = profile["qr_clear"]
     overlay.setFillColorRGB(1, 1, 1)
-    overlay.rect(clear_x, page_height - clear_top - clear_height, clear_width, clear_height, fill=1, stroke=0)
+    if profile is TEMPLATE_PROFILES["joinnus"]:
+        overlay.roundRect(
+            clear_x,
+            page_height - clear_top - clear_height,
+            clear_width,
+            clear_height,
+            10,
+            fill=1,
+            stroke=0,
+        )
+    else:
+        overlay.rect(clear_x, page_height - clear_top - clear_height, clear_width, clear_height, fill=1, stroke=0)
     try:
         with Image.open(BytesIO(qr_data)) as source:
             qr = source.convert("L")
@@ -739,6 +764,24 @@ def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes, profile:
                 width=width, height=height,
                 preserveAspectRatio=True,
             )
+            if profile is TEMPLATE_PROFILES["joinnus"]:
+                center_x = x + width / 2
+                center_y = bottom + height / 2
+                overlay.setFillColorRGB(1, 1, 1)
+                overlay.setStrokeColorRGB(*_hex_color("#9aa8b6"))
+                overlay.setLineWidth(0.7)
+                overlay.circle(center_x, center_y, 10.2, fill=1, stroke=1)
+                overlay.setFillColorRGB(*_hex_color("#19dbc1"))
+                overlay.circle(center_x, center_y, 8.4, fill=1, stroke=0)
+                overlay.setStrokeColorRGB(*_hex_color("#07141c"))
+                overlay.setLineWidth(2.1)
+                overlay.setLineCap(1)
+                mark = overlay.beginPath()
+                mark.moveTo(center_x - 5.0, center_y + 2.2)
+                mark.curveTo(center_x - 5.0, center_y - 2.6, center_x - 1.0, center_y - 3.5, center_x - 1.0, center_y + 1.4)
+                mark.moveTo(center_x + 1.2, center_y + 2.2)
+                mark.curveTo(center_x + 1.2, center_y - 2.8, center_x + 5.0, center_y - 3.3, center_x + 5.0, center_y + 2.2)
+                overlay.drawPath(mark, fill=0, stroke=1)
     except (OSError, ValueError) as exc:
         raise ValueError("El QR reconstruido no es una imagen válida.") from exc
 
@@ -914,17 +957,40 @@ def _draw_joinnus_layout(
         overlay.setFillColorRGB(*_hex_color(color))
         overlay.rect(x, page_height - top - height, width, height, fill=1, stroke=0)
 
-    # Número de compra en la cabecera.
-    rect_from_top(446, 17, 130, 24, white)
-    _draw_fitted_line(overlay, page_height, "Nro. de compra:", 454, 24, 75, 7.5, "Helvetica", ink)
+    # Número de compra en una sola línea, sin el salto visual del reemplazo anterior.
+    rect_from_top(440, 17, 138, 24, white)
+    purchase_label = "Nro. de compra:"
+    purchase_x = 454
+    purchase_top = 24
+    purchase_size = 7.8
+    purchase_y = page_height - purchase_top - purchase_size
+    overlay.setFillColorRGB(*_hex_color(ink))
+    overlay.setFont("Helvetica", purchase_size)
+    overlay.drawString(purchase_x, purchase_y, purchase_label)
+    number_x = purchase_x + pdfmetrics.stringWidth(purchase_label, "Helvetica", purchase_size) + 4
     _draw_fitted_line(
         overlay, page_height, fields.get("purchase_number", ""),
-        529, 23, 42, 8.5, "Helvetica-Bold", ink,
+        number_x, 23.2, 575 - number_x, 8.7, "Helvetica-Bold", ink,
     )
 
     # Tarjeta de acceso completa; el QR reconstruido se dibuja encima después.
-    overlay.setFillColorRGB(*_hex_color(mint))
-    overlay.roundRect(44, page_height - 178, 464, 122, 12, fill=1, stroke=0)
+    card_x = 49.2
+    card_y = page_height - 178
+    card_width = 513.6
+    card_height = 122
+    overlay.saveState()
+    card_path = overlay.beginPath()
+    card_path.roundRect(card_x, card_y, card_width, card_height, 12)
+    overlay.clipPath(card_path, fill=0, stroke=0)
+    overlay.linearGradient(
+        card_x,
+        card_y,
+        card_x + card_width,
+        card_y,
+        (HexColor("#a7f6e9"), HexColor("#edfaff")),
+        (0, 1),
+    )
+    overlay.restoreState()
     _draw_fitted_line(overlay, page_height, "Nombre", 178.7, 86, 150, 8, "Helvetica", ink)
     _draw_fitted_line(
         overlay, page_height, fields.get("attendee_name", ""),
@@ -948,19 +1014,36 @@ def _draw_joinnus_layout(
         _draw_fitted_line(overlay, page_height, fields.get("seat", ""), 390, 137, 55, 9, "Helvetica-Bold", ink)
 
     # Ficha del evento; la miniatura original queda intacta si no se carga una nueva.
-    rect_from_top(105, 190, 410, 54, white)
+    rect_from_top(99, 190, 470, 54, white)
     _draw_fitted_line(
         overlay, page_height, fields.get("event", ""),
-        120, 197, 385, 12, "Helvetica-Bold", ink,
+        105, 197, 452, 12, "Helvetica-Bold", ink,
     )
-    schedule = " · ".join(
-        part for part in (
-            f"{fields.get('day', '').strip()}. {fields.get('date', '').strip()}".strip(". "),
-            fields.get("time", "").strip(),
-            fields.get("location", "").strip(),
-        ) if part
-    )
-    _draw_fitted_line(overlay, page_height, schedule, 120, 222, 385, 9.5, "Helvetica", muted)
+
+    # Calendario, reloj y ubicación, como en la entrada Joinnus original.
+    icon_color = _hex_color("#00b894")
+    icon_top = 222.3
+    icon_y = page_height - icon_top - 9
+    overlay.setStrokeColorRGB(*icon_color)
+    overlay.setLineWidth(1.15)
+    overlay.roundRect(106, icon_y, 8.3, 8.2, 1.2, fill=0, stroke=1)
+    overlay.line(108, icon_y + 9.7, 108, icon_y + 6.8)
+    overlay.line(112.2, icon_y + 9.7, 112.2, icon_y + 6.8)
+    overlay.line(106.2, icon_y + 5.7, 114.1, icon_y + 5.7)
+    overlay.circle(224.3, icon_y + 4.2, 4.5, fill=0, stroke=1)
+    overlay.line(224.3, icon_y + 4.2, 224.3, icon_y + 7.1)
+    overlay.line(224.3, icon_y + 4.2, 226.4, icon_y + 3.1)
+    pin_x = 291.8
+    overlay.circle(pin_x, icon_y + 5.6, 4.1, fill=0, stroke=1)
+    overlay.circle(pin_x, icon_y + 5.6, 1.1, fill=0, stroke=1)
+    overlay.line(pin_x - 2.8, icon_y + 2.6, pin_x, icon_y - 1.2)
+    overlay.line(pin_x + 2.8, icon_y + 2.6, pin_x, icon_y - 1.2)
+
+    schedule_day = fields.get("day", "").strip().rstrip(".")
+    schedule_date = f"{schedule_day}. {fields.get('date', '').strip()}".strip(". ")
+    _draw_fitted_line(overlay, page_height, schedule_date, 119, 221, 96, 9.2, "Helvetica", muted)
+    _draw_fitted_line(overlay, page_height, fields.get("time", ""), 233, 221, 52, 9.2, "Helvetica", muted)
+    _draw_fitted_line(overlay, page_height, fields.get("location", ""), 301, 221, 256, 9.2, "Helvetica", muted)
 
     # Detalles de compra.
     rect_from_top(45, 250, 523, 115, white)

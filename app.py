@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from datetime import datetime
 from io import BytesIO
 import json
 from pathlib import Path
@@ -10,6 +11,7 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 import uuid
 import zipfile
+from zoneinfo import ZoneInfo
 
 import cv2
 import numpy as np
@@ -290,7 +292,14 @@ def new_ticket_identity() -> dict[str, str]:
         "code": "".join(str(secrets.randbelow(10)) for _ in range(16)),
         "purchase": str(10_000_000 + secrets.randbelow(90_000_000)),
         "ticket": str(10_000_000 + secrets.randbelow(90_000_000)),
+        "transaction": secrets.token_hex(10).upper(),
+        "purchase_date": current_purchase_timestamp(),
     }
+
+
+def current_purchase_timestamp() -> str:
+    """Fecha de emisión en la zona horaria de Festholic (Lima)."""
+    return datetime.now(ZoneInfo("America/Lima")).strftime("%d/%m/%Y - %I:%M:%S %p")
 
 
 def rotate_ticket_identity() -> None:
@@ -598,7 +607,7 @@ batch_seat_labels: dict[str, str] = {}
 if "ticket_identity" not in st.session_state:
     st.session_state.ticket_identity = new_ticket_identity()
 ticket_identity = st.session_state.ticket_identity
-if "purchase" not in ticket_identity or "ticket" not in ticket_identity:
+if any(name not in ticket_identity for name in ("purchase", "ticket", "transaction", "purchase_date")):
     ticket_identity.update(new_ticket_identity())
 
 editor_column, preview_column = st.columns([64, 36], gap="medium")
@@ -850,6 +859,11 @@ with editor_column:
             detected = inspect_ticket_fields(pdf_data)
             if pdf_source == "Plantilla Teleticket" and detected["category"].isdigit():
                 detected["category"] = "PRE-VENTA IBK"
+            elif pdf_source == "Plantilla Joinnus":
+                detected["attendee_name"] = "PROHIBIDA SU VENTA"
+                detected["purchase_date"] = ticket_identity["purchase_date"]
+                detected["purchase_number"] = ticket_identity["purchase"]
+                detected["transaction"] = ticket_identity["transaction"]
         except (ValueError, RuntimeError) as error:
             st.error(str(error), icon="🚨")
 
@@ -912,11 +926,27 @@ with editor_column:
             elif template_kind == "joinnus":
                 purchase_col, transaction_col, purchase_date_col = st.columns([.75, 1.25, 1.15])
                 with purchase_col:
-                    purchase_number = st.text_input("Nro. de compra", detected.get("purchase_number", ""))
+                    purchase_number = st.text_input(
+                        "Nro. de compra",
+                        detected.get("purchase_number", ""),
+                        key=f"joinnus_purchase_{ticket_identity['purchase']}",
+                    )
                 with transaction_col:
-                    transaction = st.text_input("Transacción", detected.get("transaction", ""))
+                    transaction = st.text_input(
+                        "Transacción",
+                        detected.get("transaction", ""),
+                        key=f"joinnus_transaction_{ticket_identity['transaction']}",
+                        disabled=True,
+                        help="Se genera una transacción diferente para cada entrada digitalizada.",
+                    )
                 with purchase_date_col:
-                    purchase_date = st.text_input("Fecha de compra", detected.get("purchase_date", ""))
+                    purchase_date = st.text_input(
+                        "Fecha de compra",
+                        detected.get("purchase_date", ""),
+                        key=f"joinnus_purchase_date_{ticket_identity['purchase_date']}",
+                        disabled=True,
+                        help="Se asigna automáticamente la fecha y hora de emisión.",
+                    )
             section_intro("Imagen del evento", "Reemplaza la fotografía o el logo de la plantilla.", "orange", 7)
             image_preview_col, image_control_col = st.columns([1, 2.2], vertical_alignment="center")
             with image_control_col:
@@ -962,6 +992,16 @@ with editor_column:
                             **common_fields,
                             "qr_number": ticket_identity["number"],
                             "qr_code": ticket_identity["code"],
+                            "transaction": (
+                                ticket_identity["transaction"]
+                                if template_kind == "joinnus"
+                                else transaction
+                            ),
+                            "purchase_date": (
+                                ticket_identity["purchase_date"]
+                                if template_kind == "joinnus"
+                                else purchase_date
+                            ),
                             "purchase_number": (
                                 purchase_number
                                 if template_kind == "joinnus" and purchase_number.strip()
@@ -981,6 +1021,16 @@ with editor_column:
                             **common_fields,
                             "qr_number": identity["number"],
                             "qr_code": identity["code"],
+                            "transaction": (
+                                identity["transaction"]
+                                if template_kind == "joinnus"
+                                else transaction
+                            ),
+                            "purchase_date": (
+                                identity["purchase_date"]
+                                if template_kind == "joinnus"
+                                else purchase_date
+                            ),
                             "purchase_number": identity["purchase"],
                             "ticket_number": identity["ticket"],
                         }
