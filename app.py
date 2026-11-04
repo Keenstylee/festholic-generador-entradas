@@ -256,6 +256,7 @@ st.markdown(
     .app-visual{position:relative;min-height:142px;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,42%);align-items:center;gap:20px;margin:-3px 0 18px;padding:20px 22px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:radial-gradient(circle at 85% 20%,rgba(37,201,232,.14),transparent 12rem),radial-gradient(circle at 60% 110%,rgba(255,46,159,.12),transparent 13rem),#101014;box-shadow:0 18px 42px rgba(0,0,0,.22)}.app-visual::after{content:"";position:absolute;left:22px;top:0;width:150px;height:3px;background:linear-gradient(90deg,#ff2e9f 0 38%,#ff7043 38% 68%,#25c9e8 68% 100%)}.app-visual__copy{position:relative;z-index:1;max-width:430px}.app-visual__copy strong{display:block;color:#fff;font-family:"Space Grotesk","Manrope",sans-serif;font-size:19px;letter-spacing:-.025em}.app-visual__copy span{display:block;margin-top:5px;color:#a9a9b4;font-size:10.5px;line-height:1.5}.app-visual__art{position:relative;min-height:100px}.visual-ticket{position:absolute;display:grid;grid-template-columns:1fr 50px;align-items:center;width:176px;height:84px;padding:12px;border:1px solid rgba(255,255,255,.16);border-radius:13px;background:linear-gradient(145deg,#23232b,#15151a);box-shadow:0 13px 28px rgba(0,0,0,.32)}.visual-ticket::before,.visual-ticket::after{content:"";position:absolute;right:48px;width:13px;height:13px;border-radius:50%;background:#101014}.visual-ticket::before{top:-7px}.visual-ticket::after{bottom:-7px}.visual-ticket--back{right:80px;top:8px;transform:rotate(-9deg);opacity:.58}.visual-ticket--front{right:16px;top:13px;transform:rotate(5deg)}.visual-ticket__lines{display:grid;gap:7px}.visual-ticket__lines i{display:block;height:5px;border-radius:4px;background:rgba(255,255,255,.13)}.visual-ticket__lines i:first-child{width:76%;background:#ff2e9f}.visual-ticket__lines i:nth-child(2){width:92%}.visual-ticket__lines i:nth-child(3){width:55%;background:rgba(37,201,232,.65)}.visual-ticket__qr{width:40px;height:40px;color:#fff}.visual-scan{position:absolute;right:0;bottom:0;width:32px;height:32px;color:#25c9e8}.visual-download{position:absolute;right:220px;bottom:2px;width:28px;height:28px;color:#ff7043}
     .completion-modal{min-height:116px;overflow:hidden;padding:18px 42% 18px 18px!important;border-radius:15px;background:radial-gradient(circle at 90% 25%,rgba(37,201,232,.16),transparent 9rem),#101014}.completion-modal__copy{color:#b8b8c2!important}.completion-modal__art{position:absolute;right:24px;top:18px;width:128px;height:80px;color:#25c9e8}.completion-modal__art .ticket-body{fill:#1d1d24;stroke:#ff2e9f;stroke-width:1.4}.completion-modal__art .ticket-line{stroke:#6f707b;stroke-width:1.2}.completion-modal__art .ticket-qr{fill:#fff}.completion-modal__art .ticket-check{fill:#51d98a}
     @media(max-width:700px){.app-visual{grid-template-columns:1fr;min-height:220px}.app-visual__art{min-height:105px}.visual-ticket--back{right:92px}.visual-ticket--front{right:28px}.visual-download{right:230px}.completion-modal{padding-right:34%!important}.completion-modal__art{right:12px;width:104px}}@media(max-width:420px){.app-visual{min-height:210px;padding:17px}.app-visual__copy strong{font-size:17px}.visual-ticket{width:154px;height:76px}.visual-ticket--back{right:65px}.visual-ticket--front{right:8px}.visual-download{display:none}.completion-modal{padding:16px!important}.completion-modal__art{display:none}}
+    .completion-modal.completion-modal--compact{min-height:0;padding:14px 15px!important;background:#101014}.completion-modal--compact::after{margin-top:10px}.completion-modal--compact .completion-modal__title{font-size:19px}
     </style>
     """,
     unsafe_allow_html=True,
@@ -381,7 +382,7 @@ def register_generation(entry_count: int, mode: str, event_id: str) -> bool:
     return False
 
 
-def complete_download(entry_count: int, mode: str) -> None:
+def complete_download(entry_count: int, mode: str, completion_key: str = "") -> None:
     event_id = st.session_state.setdefault("download_event_id", str(uuid.uuid4()))
     st.session_state.last_generation_tracked = register_generation(entry_count, mode, event_id)
     st.session_state.download_event_id = str(uuid.uuid4())
@@ -389,6 +390,8 @@ def complete_download(entry_count: int, mode: str) -> None:
         rotate_batch_identities()
     else:
         rotate_ticket_identity()
+    if completion_key:
+        st.session_state.completion_modal_key = completion_key
 
 
 def safe_pdf_filename(value: str) -> str:
@@ -470,7 +473,7 @@ def show_tutorial() -> None:
 
 @st.dialog(
     "Digitalización completada",
-    width="large",
+    width="small",
     icon=":material/task_alt:",
 )
 def show_generation_dialog(
@@ -484,36 +487,21 @@ def show_generation_dialog(
     source_name: str,
     errors: list[str] | None = None,
 ) -> None:
-    """Muestra el cierre del proceso y concentra la descarga en un solo lugar."""
+    """Confirma una descarga iniciada y mantiene visible el apoyo opcional."""
     errors = errors or []
     entry_count = len(entry_names)
     plural = entry_count != 1
     noun = "entradas" if plural else "entrada"
-    download_label = "Descargar entradas" if plural else "Descargar entrada"
-
     st.markdown(
         f"""
-        <div class="completion-modal">
+        <div class="completion-modal completion-modal--compact">
           <div class="completion-modal__eyebrow">Proceso finalizado</div>
-          <div class="completion-modal__title">{entry_count} {noun} {"listas" if plural else "lista"}</div>
-          <p class="completion-modal__copy">Los códigos QR fueron validados y los documentos ya están preparados para descargar.</p>
-          <svg class="completion-modal__art" viewBox="0 0 140 90" aria-hidden="true">
-            <path class="ticket-body" d="M12 16h116v17a9 9 0 0 0 0 18v23H12V51a9 9 0 0 0 0-18V16Z"/>
-            <path class="ticket-line" d="M73 20v50M23 29h35M23 39h26M23 49h31"/>
-            <path class="ticket-qr" d="M86 27h14v14H86zm4 4v6h6v-6zm15-4h14v14h-14zm4 4v6h6v-6zM86 46h14v14H86zm4 4v6h6v-6zm16-3h5v5h-5zm7 7h6v6h-6zm-8 4h5v5h-5z"/>
-            <circle class="ticket-check" cx="119" cy="18" r="10"/><path d="m114 18 3 3 6-7" fill="none" stroke="#07140d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+          <div class="completion-modal__title">{entry_count} {noun} {"descargadas" if plural else "descargada"}</div>
+          <p class="completion-modal__copy">La descarga comenzó automáticamente.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-    with st.status("Proceso completado", state="complete", expanded=True):
-        st.write(":material/check_circle: Códigos QR detectados y validados")
-        st.write(":material/check_circle: Información aplicada a la plantilla")
-        st.write(f":material/check_circle: {entry_count} PDF {'generados' if plural else 'generado'} correctamente")
-        if mode == "batch":
-            st.write(":material/check_circle: Archivos organizados en un ZIP")
 
     if st.session_state.get("last_generation_tracked") is False:
         st.warning(
@@ -521,45 +509,6 @@ def show_generation_dialog(
             "Mantén esta ventana abierta y vuelve a pulsar Digitalizar para reintentarlo.",
             icon=":material/sync_problem:",
         )
-
-    st.markdown(
-        f"""
-        <div class="completion-stats">
-          <div class="completion-stat"><strong>{entry_count + len(errors)}</strong><span>Procesadas</span></div>
-          <div class="completion-stat completion-stat--ok"><strong>{entry_count}</strong><span>Listas para descargar</span></div>
-          <div class="completion-stat completion-stat--warn"><strong>{len(errors)}</strong><span>Requieren revisión</span></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    with st.container(border=True):
-        st.subheader("Resumen de la digitalización", icon=":material/receipt_long:")
-        st.caption(f"{event_name or 'Evento'} · {source_name}")
-        for index, filename in enumerate(entry_names, start=1):
-            name_column, status_column = st.columns([5, 1], vertical_alignment="center")
-            name_column.text(f"{index:02d}. {filename}")
-            status_column.badge("Lista", icon=":material/check:", color="green")
-        if errors:
-            with st.expander(
-                f"{len(errors)} entrada(s) requieren revisión",
-                icon=":material/warning:",
-            ):
-                for message in errors:
-                    st.write(f"- {message}")
-
-    st.download_button(
-        download_label,
-        data=download_data,
-        file_name=download_filename,
-        mime=download_mime,
-        type="primary",
-        icon=":material/download:",
-        width="stretch",
-        on_click="ignore",
-        key=f"modal_download_{mode}_{download_filename}",
-    )
-    st.caption("Guarda tus entradas en un lugar seguro y no compartas sus códigos QR.")
 
     st.markdown(
         """
@@ -574,6 +523,9 @@ def show_generation_dialog(
         """,
         unsafe_allow_html=True,
     )
+
+    if errors:
+        st.caption(f"{len(errors)} entrada(s) requieren revisión y no se incluyeron en la descarga.")
 
 
 with st.container(border=False):
@@ -1136,14 +1088,20 @@ with preview_column:
                     + "\n".join(f"- {message}" for message in batch_generation_errors),
                     icon="⚠️",
                 )
-            if st.button(
-                f"Digitalizar {len(numbered_entries)} entradas",
+            completion_key = f"batch:{safe_base}:{len(numbered_entries)}"
+            st.download_button(
+                f"Digitalizar y descargar {len(numbered_entries)} entradas",
+                data=zip_data,
+                file_name=f"{safe_base}.zip",
+                mime="application/zip",
                 type="primary",
-                icon=":material/auto_fix_high:",
+                icon=":material/download:",
                 width="stretch",
-                key=f"open_batch_result_{safe_base}",
-            ):
-                complete_download(len(numbered_entries), "batch")
+                on_click=complete_download,
+                args=(len(numbered_entries), "batch", completion_key),
+                key=f"download_batch_{safe_base}",
+            )
+            if st.session_state.pop("completion_modal_key", "") == completion_key:
                 show_generation_dialog(
                     entry_names=[filename for filename, _ in numbered_entries],
                     download_data=zip_data,
@@ -1164,14 +1122,20 @@ with preview_column:
             )
             st.caption(f"Identificadores de esta descarga: N° {ticket_identity['number']} · {ticket_identity['code']}")
             single_filename = safe_pdf_filename(download_name)
-            if st.button(
-                "Digitalizar entrada",
+            completion_key = f"single:{single_filename}"
+            st.download_button(
+                "Digitalizar y descargar entrada",
+                data=edited_pdf,
+                file_name=single_filename,
+                mime="application/pdf",
                 type="primary",
-                icon=":material/auto_fix_high:",
+                icon=":material/download:",
                 width="stretch",
-                key=f"open_single_result_{single_filename}",
-            ):
-                complete_download(1, "single")
+                on_click=complete_download,
+                args=(1, "single", completion_key),
+                key=f"download_single_{single_filename}",
+            )
+            if st.session_state.pop("completion_modal_key", "") == completion_key:
                 show_generation_dialog(
                     entry_names=[single_filename],
                     download_data=edited_pdf,
