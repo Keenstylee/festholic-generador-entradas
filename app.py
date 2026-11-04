@@ -275,7 +275,13 @@ def digitalize_qr(data: bytes):
 
 
 @st.cache_data(show_spinner=False, max_entries=300)
-def build_ticket_pdf(pdf_data: bytes, fields: dict, event_image: bytes | None, image_mode: str, qr_png: bytes) -> bytes:
+def build_ticket_pdf(
+    pdf_data: bytes,
+    fields: dict,
+    event_image: bytes | None,
+    image_mode: str,
+    qr_png: bytes | None,
+) -> bytes:
     """Genera un PDF y lo guarda en caché: solo se rehacen las entradas que cambian."""
     return edit_ticket_fields(
         pdf_data, fields, event_image=event_image, image_mode=image_mode, reconstructed_qr=qr_png
@@ -994,97 +1000,103 @@ with editor_column:
                     )
                 else: st.caption("Sin imagen nueva")
 
-        if qr_ready:
-            common_fields = {
-                "event": event, "day": day, "date": date, "time": time,
-                "location": location, "ticket_type": ticket_type, "row": row,
-                "seat": seat, "category": category, "producer": producer,
-                "ruc": ruc, "price": price, "address": address,
-                "admission_type": admission_type, "door": door,
-                "service_charge": service_charge, "total_price": total_price,
-                "producer_address": producer_address,
-                "attendee_name": attendee_name, "attendee_dni": attendee_dni,
-                "transaction": transaction, "purchase_date": purchase_date,
-                "purchase_number": purchase_number,
-            }
-            if event_image is not None:
-                event_image_data = event_image.getvalue()
-            elif template_kind == "joinnus" and DEFAULT_JOINNUS_EVENT_IMAGE_PATH.exists():
-                event_image_data = DEFAULT_JOINNUS_EVENT_IMAGE_PATH.read_bytes()
-            else:
-                event_image_data = None
-            image_mode = "cover" if image_mode_label == "Rellenar espacio" else "contain"
-            if generation_mode == "Una entrada":
-                try:
-                    with st.spinner("Actualizando la vista previa…"):
-                        fields = {
-                            **common_fields,
-                            "qr_number": ticket_identity["number"],
-                            "qr_code": ticket_identity["code"],
-                            "transaction": (
-                                ticket_identity["transaction"]
-                                if template_kind == "joinnus"
-                                else transaction
-                            ),
-                            "purchase_date": (
-                                ticket_identity["purchase_date"]
-                                if template_kind == "joinnus"
-                                else purchase_date
-                            ),
-                            "purchase_number": (
-                                purchase_number
-                                if template_kind == "joinnus" and purchase_number.strip()
-                                else ticket_identity["purchase"]
-                            ),
-                            "ticket_number": ticket_identity["ticket"],
-                        }
-                        edited_pdf = build_ticket_pdf(pdf_data, fields, event_image_data, image_mode, qr_png)
-                except (ValueError, RuntimeError) as error:
-                    generation_error = str(error)
-            else:
-                with st.spinner(f"Generando {len(ready_items)} entrada(s) para el ZIP…"):
-                    used_seats: dict[tuple[str, str], str] = {}
-                    for item in ready_items:
-                        identity = batch_ticket_identity(item["key"])
-                        fields = {
-                            **common_fields,
-                            "qr_number": identity["number"],
-                            "qr_code": identity["code"],
-                            "transaction": (
-                                identity["transaction"]
-                                if template_kind == "joinnus"
-                                else transaction
-                            ),
-                            "purchase_date": (
-                                identity["purchase_date"]
-                                if template_kind == "joinnus"
-                                else purchase_date
-                            ),
-                            "purchase_number": identity["purchase"],
-                            "ticket_number": identity["ticket"],
-                        }
-                        if seat_mode:
-                            item_row = item.get("row", "").strip()
-                            item_seat = item.get("seat", "").strip()
-                            if not item_row or not item_seat:
-                                batch_generation_errors.append(f"{item['name']}: falta indicar la fila y el asiento.")
-                                continue
-                            if (item_row, item_seat) in used_seats:
-                                batch_generation_errors.append(
-                                    f"{item['name']}: la fila {item_row} y el asiento {item_seat} ya se usaron en {used_seats[(item_row, item_seat)]}."
-                                )
-                                continue
-                            used_seats[(item_row, item_seat)] = item["name"]
-                            fields["row"] = item_row
-                            fields["seat"] = item_seat
-                            batch_seat_labels[item["key"]] = f"-Asiento-{safe_filename_stem(item_seat, 'x')}-Fila-{safe_filename_stem(item_row, 'x')}"
-                        try:
-                            generated_pdf = build_ticket_pdf(pdf_data, fields, event_image_data, image_mode, item["png"])
-                            batch_entries.append((item["key"], generated_pdf))
-                        except (ValueError, RuntimeError) as error:
-                            batch_generation_errors.append(f"{item['name']}: {error}")
-                if batch_entries:
-                    edited_pdf = batch_entries[0][1]
+        common_fields = {
+            "event": event, "day": day, "date": date, "time": time,
+            "location": location, "ticket_type": ticket_type, "row": row,
+            "seat": seat, "category": category, "producer": producer,
+            "ruc": ruc, "price": price, "address": address,
+            "admission_type": admission_type, "door": door,
+            "service_charge": service_charge, "total_price": total_price,
+            "producer_address": producer_address,
+            "attendee_name": attendee_name, "attendee_dni": attendee_dni,
+            "transaction": transaction, "purchase_date": purchase_date,
+            "purchase_number": purchase_number,
+        }
+        if event_image is not None:
+            event_image_data = event_image.getvalue()
+        elif template_kind == "joinnus" and DEFAULT_JOINNUS_EVENT_IMAGE_PATH.exists():
+            event_image_data = DEFAULT_JOINNUS_EVENT_IMAGE_PATH.read_bytes()
+        else:
+            event_image_data = None
+        image_mode = "cover" if image_mode_label == "Rellenar espacio" else "contain"
+        preview_fields = {
+            **common_fields,
+            "qr_number": ticket_identity["number"],
+            "qr_code": ticket_identity["code"],
+            "transaction": (
+                ticket_identity["transaction"]
+                if template_kind == "joinnus"
+                else transaction
+            ),
+            "purchase_date": (
+                ticket_identity["purchase_date"]
+                if template_kind == "joinnus"
+                else purchase_date
+            ),
+            "purchase_number": (
+                purchase_number
+                if template_kind == "joinnus" and purchase_number.strip()
+                else ticket_identity["purchase"]
+            ),
+            "ticket_number": ticket_identity["ticket"],
+        }
+
+        if generation_mode == "Una entrada" or not ready_items:
+            try:
+                with st.spinner("Actualizando la vista previa…"):
+                    edited_pdf = build_ticket_pdf(
+                        pdf_data,
+                        preview_fields,
+                        event_image_data,
+                        image_mode,
+                        qr_png if qr_ready else None,
+                    )
+            except (ValueError, RuntimeError) as error:
+                generation_error = str(error)
+        else:
+            with st.spinner(f"Generando {len(ready_items)} entrada(s) para el ZIP…"):
+                used_seats: dict[tuple[str, str], str] = {}
+                for item in ready_items:
+                    identity = batch_ticket_identity(item["key"])
+                    fields = {
+                        **common_fields,
+                        "qr_number": identity["number"],
+                        "qr_code": identity["code"],
+                        "transaction": (
+                            identity["transaction"]
+                            if template_kind == "joinnus"
+                            else transaction
+                        ),
+                        "purchase_date": (
+                            identity["purchase_date"]
+                            if template_kind == "joinnus"
+                            else purchase_date
+                        ),
+                        "purchase_number": identity["purchase"],
+                        "ticket_number": identity["ticket"],
+                    }
+                    if seat_mode:
+                        item_row = item.get("row", "").strip()
+                        item_seat = item.get("seat", "").strip()
+                        if not item_row or not item_seat:
+                            batch_generation_errors.append(f"{item['name']}: falta indicar la fila y el asiento.")
+                            continue
+                        if (item_row, item_seat) in used_seats:
+                            batch_generation_errors.append(
+                                f"{item['name']}: la fila {item_row} y el asiento {item_seat} ya se usaron en {used_seats[(item_row, item_seat)]}."
+                            )
+                            continue
+                        used_seats[(item_row, item_seat)] = item["name"]
+                        fields["row"] = item_row
+                        fields["seat"] = item_seat
+                        batch_seat_labels[item["key"]] = f"-Asiento-{safe_filename_stem(item_seat, 'x')}-Fila-{safe_filename_stem(item_row, 'x')}"
+                    try:
+                        generated_pdf = build_ticket_pdf(pdf_data, fields, event_image_data, image_mode, item["png"])
+                        batch_entries.append((item["key"], generated_pdf))
+                    except (ValueError, RuntimeError) as error:
+                        batch_generation_errors.append(f"{item['name']}: {error}")
+            if batch_entries:
+                edited_pdf = batch_entries[0][1]
 
 with preview_column:
     with st.container(border=True, key="preview_card"):
@@ -1132,7 +1144,7 @@ with preview_column:
                     errors=batch_generation_errors,
                 )
             st.caption("Cada PDF conserva el QR reconstruido correspondiente y utiliza identificadores únicos.")
-        elif edited_pdf is not None:
+        elif edited_pdf is not None and qr_ready:
             download_name = st.text_input(
                 "Nombre del PDF",
                 value=default_ticket_name(row, seat),
