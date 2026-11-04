@@ -43,8 +43,8 @@ JOINNUS_SOUND_MUSIC_DEFAULTS = {
     "price": "S/ 0.00",
     "row": "",
     "seat": "",
-    "producer": "",
-    "ruc": "",
+    "producer": "SOUND MUSIC ENTERTAINMENT",
+    "ruc": "20607594041",
     "attendee_name": "PROHIBIDA SU VENTA",
     "attendee_dni": "00000000",
 }
