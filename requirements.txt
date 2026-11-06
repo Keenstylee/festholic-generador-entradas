@@ -1,5 +1,6 @@
 streamlit>=1.39,<2
 opencv-python-headless>=4.10,<5
+zxing-cpp>=2.2,<3
 numpy>=1.26,<3
 Pillow>=10,<12
 pytest>=8,<9

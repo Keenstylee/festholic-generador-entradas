@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import cv2
 import numpy as np
+import zxingcpp
 
 from .preprocessing import preprocessing_variants
 from .reconstruction import clean_straight_qr
@@ -39,6 +40,17 @@ def _decode_with_scales(detector: cv2.QRCodeDetector, image: np.ndarray) -> str:
     return ""
 
 
+def _decode_with_zxing(image: np.ndarray) -> tuple[str, bytes]:
+    """Segundo lector para QR con ECI u otros modos incompletos en OpenCV."""
+    try:
+        result = zxingcpp.read_barcode(image)
+    except (ValueError, RuntimeError):
+        return "", b""
+    if result is None or not result.valid:
+        return "", b""
+    return result.text or "", bytes(result.bytes or b"")
+
+
 def process_image(image: np.ndarray) -> ReconstructionResult:
     if image is None or image.size == 0:
         return ReconstructionResult(False, "La imagen está vacía o no es válida.")
@@ -62,10 +74,16 @@ def process_image(image: np.ndarray) -> ReconstructionResult:
 
     name, original_text, points, straight = best_geometry
     matrix, clean = clean_straight_qr(straight)
-    validation_text = _decode_with_scales(detector, clean)
-    validated = bool(validation_text) and (
-        not original_text or validation_text == original_text
-    )
+    source_fallback_text, source_bytes = _decode_with_zxing(straight)
+    clean_fallback_text, clean_bytes = _decode_with_zxing(clean)
+    original_text = original_text or source_fallback_text
+    validation_text = _decode_with_scales(detector, clean) or clean_fallback_text
+    if source_bytes and clean_bytes:
+        validated = source_bytes == clean_bytes
+    else:
+        validated = bool(validation_text) and (
+            not original_text or validation_text == original_text
+        )
 
     if validated:
         message = "Reconstrucción completada y validada correctamente."
