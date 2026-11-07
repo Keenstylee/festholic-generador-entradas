@@ -51,6 +51,7 @@ JOINNUS_SOUND_MUSIC_DEFAULTS = {
 }
 FESTHOLIC_GENERATION_ENDPOINT = "https://festholic.com/api/digitalizer/generation"
 MAX_SEAT_TICKETS = 60
+QR_PIPELINE_VERSION = "2026-11-07-mobile-payload-v2"
 
 st.set_page_config(page_title="Digitalizador de entradas | Festholic", page_icon="🎟️", layout="wide")
 
@@ -268,7 +269,10 @@ def current_festholic_token() -> str:
 
 
 @st.cache_data(show_spinner=False)
-def digitalize_qr(data: bytes):
+def digitalize_qr(data: bytes, pipeline_version: str):
+    # La versión forma parte de la llave del caché. Cuando cambia el pipeline,
+    # los archivos ya procesados se analizan nuevamente en todos los dispositivos.
+    del pipeline_version
     raw = np.frombuffer(data, dtype=np.uint8)
     image = cv2.imdecode(raw, cv2.IMREAD_COLOR)
     if image is None:
@@ -709,7 +713,7 @@ with editor_column:
                             "row": slot_row, "seat": slot_seat,
                         }
                         try:
-                            item["original"], item["result"] = digitalize_qr(data)
+                            item["original"], item["result"] = digitalize_qr(data, QR_PIPELINE_VERSION)
                             if item["result"].success and item["result"].validated:
                                 qr_value = item["result"].validation_text
                                 if qr_value in seen_qr_values:
@@ -757,7 +761,7 @@ with editor_column:
                     "error": None,
                 }
                 try:
-                    item["original"], item["result"] = digitalize_qr(data)
+                    item["original"], item["result"] = digitalize_qr(data, QR_PIPELINE_VERSION)
                     if item["result"].success and item["result"].validated:
                         qr_value = item["result"].validation_text
                         if qr_value in seen_qr_values:
