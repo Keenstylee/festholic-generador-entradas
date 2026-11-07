@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime
+from html import escape
 from io import BytesIO
 import json
 from pathlib import Path
@@ -126,6 +127,17 @@ st.markdown(
     .st-key-seat_slots [data-baseweb="input"]>div{min-height:36px!important;border-radius:9px!important}.st-key-seat_slots input{padding:0 8px!important;font-size:12.5px!important;text-align:center}
     .qr-process__more{margin-top:10px}.qr-process__more summary{cursor:pointer;color:#9fb2a8;font-size:10px;font-weight:750;list-style:none}.qr-process__more summary::-webkit-details-marker{display:none}.qr-process__more summary::before{content:"▸ "}.qr-process__more[open] summary::before{content:"▾ "}.qr-process__more .qr-process__steps{margin-top:10px}
     .st-key-qr_result_card [data-testid="stImage"] img{max-height:240px;object-fit:contain}
+    [class*="st-key-batch_qr_compare_"]{margin-bottom:8px}
+    [class*="st-key-batch_qr_compare_"]>[data-testid="stVerticalBlock"]{gap:.45rem!important;padding:11px 12px!important}
+    .batch-qr-compare__title{display:flex;align-items:center;gap:8px;min-width:0;color:#fff}.batch-qr-compare__title>span{width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;border-radius:7px;background:rgba(81,217,138,.16);color:var(--fh-green);font-size:12px;font-weight:900}.batch-qr-compare__title>div{min-width:0}.batch-qr-compare__title strong{display:block;overflow:hidden;color:#eef8f2;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.batch-qr-compare__title small{display:block;margin-top:2px;color:#86b79a;font-size:8.5px}
+    [class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]{align-items:center!important;flex-wrap:nowrap!important;gap:8px!important}
+    [class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:0!important}
+    [class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),[class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex:0 0 88px!important;width:88px!important}
+    [class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3){flex:1 1 auto!important;width:auto!important}
+    [class*="st-key-batch_qr_compare_"] [data-testid="stImage"]{display:flex;flex-direction:column;align-items:center;margin:0!important}
+    [class*="st-key-batch_qr_compare_"] [data-testid="stImage"] img{width:72px!important;height:72px!important;object-fit:contain;border:1px solid rgba(255,255,255,.10);border-radius:9px;background:#fff}
+    [class*="st-key-batch_qr_compare_"] [data-testid="stImage"] [data-testid="stCaptionContainer"]{font-size:8px!important;text-align:center}
+    @media(max-width:560px){[class*="st-key-batch_qr_compare_"]>[data-testid="stVerticalBlock"]{padding:10px!important}[class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),[class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex-basis:76px!important;width:76px!important}[class*="st-key-batch_qr_compare_"] [data-testid="stImage"] img{width:64px!important;height:64px!important}}
     @media(max-width:900px){.st-key-qr_result_card [data-testid="stHorizontalBlock"]{flex-wrap:wrap!important;gap:6px!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:0!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3){flex:0 0 calc(44% - 4px)!important;width:calc(44% - 4px)!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex:0 0 8%!important;width:8%!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 100%!important;width:100%!important}.qr-process{padding:12px}.st-key-qr_result_card [data-testid="stImage"] img{max-height:170px}}
     @media(max-width:900px){.batch-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}.batch-summary__item{padding:8px 9px}.batch-summary__item strong{font-size:15px}.batch-summary__item span{font-size:8.5px}.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3),.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 22%!important;width:22%!important}.completion-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.completion-stat{padding:9px}.support-card__account{display:grid;gap:4px}}
 
@@ -457,6 +469,39 @@ def render_pdf_preview(data: bytes | None) -> None:
         st.caption("La vista se actualiza automáticamente. Usa el icono de ampliar de la imagen para verla en pantalla completa.")
     except (ValueError, RuntimeError) as error:
         st.error(f"No se pudo renderizar la vista previa: {error}", icon="🚨")
+
+
+def render_batch_qr_comparison(item: dict, index: int) -> None:
+    """Muestra una comparación compacta y una ampliación bajo demanda."""
+    comparison_key = hashlib.sha256(item["key"].encode("utf-8")).hexdigest()[:12]
+    original_rgb = cv2.cvtColor(item["original"], cv2.COLOR_BGR2RGB)
+    display_name = escape(str(item["name"]))
+
+    with st.container(border=True, key=f"batch_qr_compare_{index}_{comparison_key}"):
+        st.markdown(
+            f'<div class="batch-qr-compare__title"><span>✓</span><div><strong>{index:02d}. {display_name}</strong><small>QR reconstruido y validado</small></div></div>',
+            unsafe_allow_html=True,
+        )
+        original_col, rebuilt_col, action_col = st.columns(
+            [1, 1, 1.6], gap="small", vertical_alignment="center", wrap=False
+        )
+        with original_col:
+            st.image(original_rgb, caption="Original", width=72)
+        with rebuilt_col:
+            st.image(item["png"], caption="Reconstruido", width=72)
+        with action_col:
+            with st.popover(
+                "Ampliar comparación",
+                icon=":material/zoom_in:",
+                width="stretch",
+                key=f"qr_compare_popover_{index}_{comparison_key}",
+            ):
+                st.markdown(f"**{index:02d}. {display_name}**")
+                large_original, large_rebuilt = st.columns(2, gap="small")
+                with large_original:
+                    st.image(original_rgb, caption="Imagen original", width="stretch")
+                with large_rebuilt:
+                    st.image(item["png"], caption="QR reconstruido", width="stretch")
 
 
 @st.dialog("Cómo usar el digitalizador")
@@ -795,7 +840,7 @@ with editor_column:
                 )
                 for index, item in enumerate(qr_items, start=1):
                     if item["png"] is not None:
-                        st.success(f"{index:02d}. {item['name']} · QR reconstruido y validado", icon="✅")
+                        render_batch_qr_comparison(item, index)
                     else:
                         message = item["error"] or (item["result"].message if item["result"] is not None else "No se pudo validar el QR.")
                         st.error(f"{index:02d}. {item['name']} · {message}", icon="🚨")
