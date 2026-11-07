@@ -268,7 +268,7 @@ def current_festholic_token() -> str:
     return str(value[0] if isinstance(value, list) and value else value or "")
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=64)
 def digitalize_qr(data: bytes, pipeline_version: str):
     # La versión forma parte de la llave del caché. Cuando cambia el pipeline,
     # los archivos ya procesados se analizan nuevamente en todos los dispositivos.
@@ -280,7 +280,7 @@ def digitalize_qr(data: bytes, pipeline_version: str):
     return image, process_image(image)
 
 
-@st.cache_data(show_spinner=False, max_entries=300)
+@st.cache_data(show_spinner=False, max_entries=40)
 def build_ticket_pdf(
     pdf_data: bytes,
     fields: dict,
@@ -306,12 +306,12 @@ def section_intro(title: str, description: str, accent: str | None = None, step:
     )
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=32)
 def pdf_page_count(data: bytes) -> int:
     return count_pdf_pages(data)
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, max_entries=24)
 def render_pdf_page(data: bytes, page_index: int, zoom: float) -> bytes:
     return render_page_png(data, page_index, zoom)
 
@@ -587,6 +587,7 @@ qr_original = None
 qr_result = None
 qr_error = None
 qr_items = []
+ready_items = []
 edited_pdf: bytes | None = None
 batch_entries: list[tuple[str, bytes]] = []
 batch_generation_errors: list[str] = []
