@@ -772,7 +772,7 @@ def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes, profile:
                 overlay.setFillColorRGB(1, 1, 1)
                 # El sello oficial ya contiene sus detalles. Solo necesita un
                 # respaldo blanco limpio, sin el antiguo contorno gris.
-                overlay.circle(center_x, center_y, 10.4, fill=1, stroke=0)
+                overlay.circle(center_x, center_y, 10.3, fill=1, stroke=0)
                 try:
                     with Image.open(JOINNUS_LOGO_PATH) as source_logo:
                         source_logo = source_logo.convert("RGBA")
@@ -792,7 +792,7 @@ def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes, profile:
                         logo_buffer = BytesIO()
                         icon.save(logo_buffer, format="PNG")
                         logo_buffer.seek(0)
-                        logo_size = 17.2
+                        logo_size = 19.0
                         overlay.drawImage(
                             ImageReader(logo_buffer),
                             center_x - logo_size / 2,
