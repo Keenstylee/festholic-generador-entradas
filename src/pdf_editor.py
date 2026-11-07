@@ -113,7 +113,7 @@ TICKETMASTER_EDITABLE_IDENTIFIER_ORIGINS = (
 )
 
 JOINNUS_FIELDS = {}
-JOINNUS_LOGO_PATH = Path(__file__).resolve().parents[1] / "assets" / "joinnus-logo.png"
+JOINNUS_LOGO_PATH = Path(__file__).resolve().parents[1] / "assets" / "joinnus-qr-seal.png"
 
 TEMPLATE_PROFILES = {
     "teleticket": {
@@ -770,9 +770,9 @@ def _draw_reconstructed_qr(overlay, page_height: float, qr_data: bytes, profile:
                 center_x = x + width / 2
                 center_y = bottom + height / 2
                 overlay.setFillColorRGB(1, 1, 1)
-                overlay.setStrokeColorRGB(*_hex_color("#9aa8b6"))
-                overlay.setLineWidth(0.7)
-                overlay.circle(center_x, center_y, 10.2, fill=1, stroke=1)
+                # El sello oficial ya contiene sus detalles. Solo necesita un
+                # respaldo blanco limpio, sin el antiguo contorno gris.
+                overlay.circle(center_x, center_y, 10.4, fill=1, stroke=0)
                 try:
                     with Image.open(JOINNUS_LOGO_PATH) as source_logo:
                         source_logo = source_logo.convert("RGBA")
