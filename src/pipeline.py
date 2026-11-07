@@ -51,6 +51,22 @@ def _decode_with_zxing(image: np.ndarray) -> tuple[str, bytes]:
     return result.text or "", bytes(result.bytes or b"")
 
 
+def _reencode_with_zxing(payload: bytes) -> tuple[np.ndarray, np.ndarray]:
+    """Regenera una matriz limpia cuando dos lectores confirmaron el payload."""
+    barcode = zxingcpp.create_barcode(payload, zxingcpp.BarcodeFormat.QRCode, "H")
+    modules = np.asarray(
+        zxingcpp.write_barcode_to_image(
+            barcode,
+            size_hint=0,
+            with_hrt=False,
+            with_quiet_zones=True,
+        )
+    ).astype(np.uint8)
+    matrix = (modules[4:-4, 4:-4] < 128).astype(np.uint8)
+    clean = cv2.resize(modules, None, fx=16, fy=16, interpolation=cv2.INTER_NEAREST)
+    return matrix, clean
+
+
 def process_image(image: np.ndarray) -> ReconstructionResult:
     if image is None or image.size == 0:
         return ReconstructionResult(False, "La imagen está vacía o no es válida.")
@@ -73,8 +89,9 @@ def process_image(image: np.ndarray) -> ReconstructionResult:
         )
 
     name, original_text, points, straight = best_geometry
+    opencv_original_text = original_text
     matrix, clean = clean_straight_qr(straight)
-    source_fallback_text, source_bytes = _decode_with_zxing(straight)
+    source_fallback_text, source_bytes = _decode_with_zxing(image)
     clean_fallback_text, clean_bytes = _decode_with_zxing(clean)
     original_text = original_text or source_fallback_text
     validation_text = _decode_with_scales(detector, clean) or clean_fallback_text
@@ -84,6 +101,24 @@ def process_image(image: np.ndarray) -> ReconstructionResult:
         validated = bool(validation_text) and (
             not original_text or validation_text == original_text
         )
+
+    # Algunas cámaras móviles suavizan los módulos: ambos lectores recuperan
+    # el contenido original, pero la cuadrícula rectificada de OpenCV queda
+    # inutilizable. Solo regeneramos cuando OpenCV y ZXing coinciden y el nuevo
+    # QR vuelve a decodificar exactamente los mismos bytes.
+    if (
+        not validated
+        and source_bytes
+        and opencv_original_text
+        and source_fallback_text == opencv_original_text
+    ):
+        rebuilt_matrix, rebuilt_clean = _reencode_with_zxing(source_bytes)
+        rebuilt_text, rebuilt_bytes = _decode_with_zxing(rebuilt_clean)
+        if rebuilt_bytes == source_bytes:
+            matrix, clean = rebuilt_matrix, rebuilt_clean
+            validation_text = rebuilt_text or source_fallback_text
+            validated = True
+            name = f"{name}+payload"
 
     if validated:
         message = "Reconstrucción completada y validada correctamente."
