@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 from datetime import datetime
 from html import escape
@@ -127,17 +128,14 @@ st.markdown(
     .st-key-seat_slots [data-baseweb="input"]>div{min-height:36px!important;border-radius:9px!important}.st-key-seat_slots input{padding:0 8px!important;font-size:12.5px!important;text-align:center}
     .qr-process__more{margin-top:10px}.qr-process__more summary{cursor:pointer;color:#9fb2a8;font-size:10px;font-weight:750;list-style:none}.qr-process__more summary::-webkit-details-marker{display:none}.qr-process__more summary::before{content:"▸ "}.qr-process__more[open] summary::before{content:"▾ "}.qr-process__more .qr-process__steps{margin-top:10px}
     .st-key-qr_result_card [data-testid="stImage"] img{max-height:240px;object-fit:contain}
-    [class*="st-key-batch_qr_compare_"]{margin-bottom:8px}
-    [class*="st-key-batch_qr_compare_"]>[data-testid="stVerticalBlock"]{gap:.45rem!important;padding:11px 12px!important}
-    .batch-qr-compare__title{display:flex;align-items:center;gap:8px;min-width:0;color:#fff}.batch-qr-compare__title>span{width:22px;height:22px;flex:0 0 auto;display:grid;place-items:center;border-radius:7px;background:rgba(81,217,138,.16);color:var(--fh-green);font-size:12px;font-weight:900}.batch-qr-compare__title>div{min-width:0}.batch-qr-compare__title strong{display:block;overflow:hidden;color:#eef8f2;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.batch-qr-compare__title small{display:block;margin-top:2px;color:#86b79a;font-size:8.5px}
-    [class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]{align-items:center!important;flex-wrap:nowrap!important;gap:8px!important}
-    [class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:0!important}
-    [class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),[class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex:0 0 88px!important;width:88px!important}
-    [class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3){flex:1 1 auto!important;width:auto!important}
-    [class*="st-key-batch_qr_compare_"] [data-testid="stImage"]{display:flex;flex-direction:column;align-items:center;margin:0!important}
-    [class*="st-key-batch_qr_compare_"] [data-testid="stImage"] img{width:72px!important;height:72px!important;object-fit:contain;border:1px solid rgba(255,255,255,.10);border-radius:9px;background:#fff}
-    [class*="st-key-batch_qr_compare_"] [data-testid="stImage"] [data-testid="stCaptionContainer"]{font-size:8px!important;text-align:center}
-    @media(max-width:560px){[class*="st-key-batch_qr_compare_"]>[data-testid="stVerticalBlock"]{padding:10px!important}[class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),[class*="st-key-batch_qr_compare_"] [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex-basis:76px!important;width:76px!important}[class*="st-key-batch_qr_compare_"] [data-testid="stImage"] img{width:64px!important;height:64px!important}}
+    [class*="st-key-batch_qr_result_"]{margin-bottom:8px}
+    [class*="st-key-batch_qr_result_"] [data-testid="stExpander"]{overflow:visible;border:1px solid rgba(81,217,138,.27)!important;border-radius:13px!important;background:rgba(31,84,58,.48)!important;box-shadow:inset 3px 0 0 rgba(81,217,138,.75)}
+    [class*="st-key-batch_qr_result_"] [data-testid="stExpander"] details>summary{min-height:58px;padding:10px 14px!important;color:#baf1cf!important;font-size:11px!important;font-weight:750!important}
+    [class*="st-key-batch_qr_result_"] [data-testid="stExpander"] details>summary:hover{background:rgba(81,217,138,.055)!important}
+    [class*="st-key-batch_qr_result_"] [data-testid="stExpanderDetails"]{padding:4px 14px 14px!important;border-top:1px solid rgba(81,217,138,.13)}
+    .batch-qr-result__body{display:grid;grid-template-columns:minmax(150px,1fr) auto;align-items:center;gap:18px;padding-top:10px}.batch-qr-result__copy strong{display:block;color:#e8fff1;font-size:11px}.batch-qr-result__copy span{display:block;margin-top:4px;color:#8eb6a0;font-size:9px;line-height:1.45}
+    .batch-qr-result__comparison{display:flex;align-items:center;justify-content:flex-end;gap:9px}.batch-qr-result__thumb{display:grid;gap:4px;justify-items:center;cursor:zoom-in}.batch-qr-result__thumb img{width:76px;height:76px;display:block;object-fit:contain;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#fff}.batch-qr-result__thumb span{color:#a7b8ae;font-size:8px}.batch-qr-result__arrow{color:#51d98a;font-size:18px;font-weight:800}.batch-qr-result__toggle{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none}.batch-qr-result__lightbox{position:fixed;inset:0;z-index:999999;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(3,5,8,.88);cursor:zoom-out;backdrop-filter:blur(8px)}.batch-qr-result__lightbox img{display:block;max-width:min(92vw,900px);max-height:88vh;object-fit:contain;border:8px solid #fff;border-radius:16px;box-shadow:0 28px 80px rgba(0,0,0,.55)}.batch-qr-result__toggle:checked+.batch-qr-result__lightbox{display:flex}
+    @media(max-width:560px){[class*="st-key-batch_qr_result_"] [data-testid="stExpander"] details>summary{min-height:54px;padding:9px 11px!important;font-size:10px!important}[class*="st-key-batch_qr_result_"] [data-testid="stExpanderDetails"]{padding:4px 11px 12px!important}.batch-qr-result__body{grid-template-columns:1fr auto;gap:9px}.batch-qr-result__copy span{display:none}.batch-qr-result__comparison{gap:6px}.batch-qr-result__thumb img{width:62px;height:62px;border-radius:9px}.batch-qr-result__thumb span{font-size:7px}.batch-qr-result__arrow{font-size:15px}.batch-qr-result__lightbox{padding:14px}.batch-qr-result__lightbox img{border-width:5px;border-radius:12px}}
     @media(max-width:900px){.st-key-qr_result_card [data-testid="stHorizontalBlock"]{flex-wrap:wrap!important;gap:6px!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:0!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(1),.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3){flex:0 0 calc(44% - 4px)!important;width:calc(44% - 4px)!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(2){flex:0 0 8%!important;width:8%!important}.st-key-qr_result_card [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 100%!important;width:100%!important}.qr-process{padding:12px}.st-key-qr_result_card [data-testid="stImage"] img{max-height:170px}}
     @media(max-width:900px){.batch-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}.batch-summary__item{padding:8px 9px}.batch-summary__item strong{font-size:15px}.batch-summary__item span{font-size:8.5px}.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(3),.st-key-seat_slots [data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:nth-child(4){flex:0 0 22%!important;width:22%!important}.completion-stats{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.completion-stat{padding:9px}.support-card__account{display:grid;gap:4px}}
 
@@ -471,37 +469,55 @@ def render_pdf_preview(data: bytes | None) -> None:
         st.error(f"No se pudo renderizar la vista previa: {error}", icon="🚨")
 
 
-def render_batch_qr_comparison(item: dict, index: int) -> None:
-    """Muestra una comparación compacta y una ampliación bajo demanda."""
-    comparison_key = hashlib.sha256(item["key"].encode("utf-8")).hexdigest()[:12]
-    original_rgb = cv2.cvtColor(item["original"], cv2.COLOR_BGR2RGB)
-    display_name = escape(str(item["name"]))
+def _qr_preview_data_url(image: np.ndarray | bytes, *, reconstructed: bool = False) -> str:
+    """Genera una imagen ligera para la miniatura y su ampliación en lotes."""
+    if isinstance(image, bytes):
+        source = cv2.imdecode(np.frombuffer(image, dtype=np.uint8), cv2.IMREAD_COLOR)
+    else:
+        source = image
+    if source is None or source.size == 0:
+        return ""
+    height, width = source.shape[:2]
+    scale = min(1.0, 720 / max(height, width))
+    if scale < 1.0:
+        source = cv2.resize(source, (round(width * scale), round(height * scale)), interpolation=cv2.INTER_AREA)
+    extension = ".png" if reconstructed else ".jpg"
+    options = [] if reconstructed else [cv2.IMWRITE_JPEG_QUALITY, 86]
+    ok, encoded = cv2.imencode(extension, source, options)
+    if not ok:
+        return ""
+    mime = "image/png" if reconstructed else "image/jpeg"
+    return f"data:{mime};base64,{base64.b64encode(encoded.tobytes()).decode('ascii')}"
 
-    with st.container(border=True, key=f"batch_qr_compare_{index}_{comparison_key}"):
-        st.markdown(
-            f'<div class="batch-qr-compare__title"><span>✓</span><div><strong>{index:02d}. {display_name}</strong><small>QR reconstruido y validado</small></div></div>',
-            unsafe_allow_html=True,
-        )
-        original_col, rebuilt_col, action_col = st.columns(
-            [1, 1, 1.6], gap="small", vertical_alignment="center", wrap=False
-        )
-        with original_col:
-            st.image(original_rgb, caption="Original", width=72)
-        with rebuilt_col:
-            st.image(item["png"], caption="Reconstruido", width=72)
-        with action_col:
-            with st.popover(
-                "Ampliar comparación",
-                icon=":material/zoom_in:",
-                width="stretch",
-                key=f"qr_compare_popover_{index}_{comparison_key}",
-            ):
-                st.markdown(f"**{index:02d}. {display_name}**")
-                large_original, large_rebuilt = st.columns(2, gap="small")
-                with large_original:
-                    st.image(original_rgb, caption="Imagen original", width="stretch")
-                with large_rebuilt:
-                    st.image(item["png"], caption="QR reconstruido", width="stretch")
+
+def render_batch_qr_comparison(item: dict, index: int) -> None:
+    """Muestra el resultado anterior como lista desplegable con comparación directa."""
+    comparison_key = hashlib.sha256(item["key"].encode("utf-8")).hexdigest()[:12]
+    display_name = escape(str(item["name"]))
+    original_url = _qr_preview_data_url(item["original"])
+    rebuilt_url = _qr_preview_data_url(item["png"], reconstructed=True)
+    original_id = f"qr-original-{index}-{comparison_key}"
+    rebuilt_id = f"qr-rebuilt-{index}-{comparison_key}"
+
+    with st.container(key=f"batch_qr_result_{index}_{comparison_key}"):
+        with st.expander(
+            f"✅ {index:02d}. {item['name']} · QR reconstruido y validado",
+            expanded=False,
+            key=f"batch_qr_expander_{index}_{comparison_key}",
+        ):
+            st.markdown(
+                f'''<div class="batch-qr-result__body">
+                    <div class="batch-qr-result__copy"><strong>Comparación del código QR</strong><span>Toca cualquiera de las imágenes para revisar sus detalles.</span></div>
+                    <div class="batch-qr-result__comparison">
+                        <label class="batch-qr-result__thumb" for="{original_id}"><img src="{original_url}" alt="QR físico de {display_name}"><span>QR físico</span></label>
+                        <input class="batch-qr-result__toggle" id="{original_id}" type="checkbox"><label class="batch-qr-result__lightbox" for="{original_id}"><img src="{original_url}" alt="QR físico ampliado"></label>
+                        <span class="batch-qr-result__arrow" aria-hidden="true">→</span>
+                        <label class="batch-qr-result__thumb" for="{rebuilt_id}"><img src="{rebuilt_url}" alt="QR digitalizado de {display_name}"><span>Digitalizado</span></label>
+                        <input class="batch-qr-result__toggle" id="{rebuilt_id}" type="checkbox"><label class="batch-qr-result__lightbox" for="{rebuilt_id}"><img src="{rebuilt_url}" alt="QR digitalizado ampliado"></label>
+                    </div>
+                </div>''',
+                unsafe_allow_html=True,
+            )
 
 
 @st.dialog("Cómo usar el digitalizador")

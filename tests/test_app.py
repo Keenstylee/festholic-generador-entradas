@@ -27,11 +27,8 @@ def test_valid_batch_qr_renders_original_and_rebuilt_comparison():
         [("entrada-01.png", png.tobytes(), "image/png")]
     ).run(timeout=30)
 
-    comparisons = [
-        element.value
-        for element in app.markdown
-        if str(element.value).startswith('<div class="batch-qr-compare__title">')
-    ]
+    comparisons = [element.value for element in app.markdown if 'class="batch-qr-result__body"' in str(element.value)]
     assert comparisons
-    assert "QR reconstruido y validado" in comparisons[0]
+    assert "QR físico" in comparisons[0]
+    assert "Digitalizado" in comparisons[0]
     assert not app.exception
