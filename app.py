@@ -309,19 +309,42 @@ def require_festholic_access() -> None:
     message = escape(str(result.get("error") or "Acceso restringido."))
     st.markdown(
         f"""
-        <div style="max-width:560px;margin:12vh auto 0;padding:32px;border:1px solid rgba(255,255,255,.10);border-radius:22px;background:#15161b;text-align:center;box-shadow:0 24px 65px rgba(0,0,0,.30)">
-          <div style="color:#25c9e8;font-size:11px;font-weight:800;letter-spacing:.14em">ACCESO PRIVADO</div>
-          <h2 style="margin:10px 0;color:#fff">Digitalización por solicitud</h2>
-          <p style="color:#aaa6b0;line-height:1.65">{message}<br>Si necesitas digitalizar entradas, solicítalo directamente a Festholic.</p>
-        </div>
+        <style>
+          .access-gate{{max-width:650px;margin:10vh auto 0;padding:1px;border-radius:25px;background:linear-gradient(120deg,#ff2e9f,#ff7043 52%,#25c9e8);box-shadow:0 28px 80px rgba(0,0,0,.38)}}
+          .access-gate__card{{position:relative;overflow:hidden;padding:38px;border-radius:24px;background:#15161b;text-align:center}}
+          .access-gate__card::before{{content:"";position:absolute;right:-70px;top:-90px;width:230px;height:230px;border:38px solid rgba(37,201,232,.055);border-radius:50%}}
+          .access-gate__icon{{position:relative;display:grid;width:66px;height:66px;margin:0 auto 20px;place-items:center;border-radius:20px;background:#25c9e8;color:#071519;box-shadow:0 12px 28px rgba(37,201,232,.18)}}
+          .access-gate__icon svg{{width:30px;height:30px}}
+          .access-gate__eyebrow{{position:relative;color:#25c9e8;font-size:10px;font-weight:900;letter-spacing:.16em}}
+          .access-gate h2{{position:relative;margin:9px 0 10px!important;color:#fff!important;font-size:27px!important;letter-spacing:-.035em!important}}
+          .access-gate__copy{{position:relative;max-width:470px;margin:0 auto;color:#aaa6b0!important;font-size:13px;line-height:1.65}}
+          .access-gate__note{{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;margin:20px auto 0;color:#ddd9e1;font-size:12px;font-weight:700}}
+          .access-gate__note svg{{width:17px;height:17px;color:#ff7043}}
+          .access-gate__actions{{position:relative;display:grid;grid-template-columns:1.25fr .75fr;gap:10px;margin-top:24px}}
+          .access-gate__button{{min-height:48px;display:flex;align-items:center;justify-content:center;gap:9px;padding:0 17px;border-radius:14px;color:#fff!important;font-size:12px;font-weight:850;text-decoration:none!important;transition:transform .16s ease,filter .16s ease}}
+          .access-gate__button:hover{{transform:translateY(-1px);filter:brightness(1.07)}}
+          .access-gate__button svg{{width:18px;height:18px}}
+          .access-gate__button--whatsapp{{background:#1fa855;box-shadow:0 10px 24px rgba(31,168,85,.22)}}
+          .access-gate__button--panel{{background:#25c9e8;color:#071519!important;box-shadow:0 10px 24px rgba(37,201,232,.18)}}
+          .access-gate__footer{{position:relative;margin-top:16px;color:#706d76;font-size:10px}}
+          @media(max-width:560px){{.access-gate{{margin:7vh 8px 0}}.access-gate__card{{padding:28px 20px}}.access-gate h2{{font-size:23px!important}}.access-gate__actions{{grid-template-columns:1fr}}}}
+        </style>
+        <section class="access-gate">
+          <div class="access-gate__card">
+            <span class="access-gate__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg></span>
+            <div class="access-gate__eyebrow">ACCESO PRIVADO</div>
+            <h2>Digitalización por solicitud</h2>
+            <p class="access-gate__copy">{message}<br>Envíanos tus entradas y nosotros realizaremos la digitalización por ti.</p>
+            <div class="access-gate__note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.7-5A7 7 0 0 1 3 12V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>Atención directa con Keenscy Sanchez</div>
+            <div class="access-gate__actions">
+              <a class="access-gate__button access-gate__button--whatsapp" href="https://wa.me/51968424445?text=Hola%2C%20quiero%20solicitar%20la%20digitalizaci%C3%B3n%20de%20mis%20entradas" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.3A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 8.5c.5 3 2 4.5 5 5"/></svg>WhatsApp · +51 968 424 445</a>
+              <a class="access-gate__button access-gate__button--panel" href="https://festholic.com/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>Volver al panel</a>
+            </div>
+            <div class="access-gate__footer">Festholic · Servicio de digitalización de entradas</div>
+          </div>
+        </section>
         """,
         unsafe_allow_html=True,
-    )
-    st.link_button(
-        "Solicitar digitalización",
-        "https://wa.me/51968424445?text=Hola%2C%20quiero%20solicitar%20la%20digitalizaci%C3%B3n%20de%20mis%20entradas",
-        icon=":material/chat:",
-        width="stretch",
     )
     st.stop()
 
