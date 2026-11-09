@@ -278,6 +278,54 @@ def current_festholic_token() -> str:
     return str(value[0] if isinstance(value, list) and value else value or "")
 
 
+@st.cache_data(show_spinner=False, ttl=60, max_entries=256)
+def verify_festholic_access(token: str) -> dict:
+    """Comprueba en Festholic que el token pertenece a un correo autorizado."""
+    if not token:
+        return {"allowed": False, "error": "Abre el digitalizador desde tu cuenta de Festholic."}
+    request = Request(
+        "https://festholic.com/api/digitalizer/verify",
+        data=json.dumps({"token": token}).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=8) as response:
+            result = json.loads(response.read().decode("utf-8"))
+    except HTTPError as error:
+        try:
+            result = json.loads(error.read().decode("utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            result = {"allowed": False, "error": "Tu cuenta no tiene acceso al digitalizador."}
+    except (URLError, TimeoutError, json.JSONDecodeError, UnicodeDecodeError):
+        result = {"allowed": False, "error": "No pudimos confirmar tu acceso. Vuelve a entrar desde Festholic."}
+    return result if isinstance(result, dict) else {"allowed": False}
+
+
+def require_festholic_access() -> None:
+    result = verify_festholic_access(current_festholic_token())
+    if result.get("allowed") is True:
+        return
+    message = escape(str(result.get("error") or "Acceso restringido."))
+    st.markdown(
+        f"""
+        <div style="max-width:560px;margin:12vh auto 0;padding:32px;border:1px solid rgba(255,255,255,.10);border-radius:22px;background:#15161b;text-align:center;box-shadow:0 24px 65px rgba(0,0,0,.30)">
+          <div style="color:#25c9e8;font-size:11px;font-weight:800;letter-spacing:.14em">ACCESO PRIVADO</div>
+          <h2 style="margin:10px 0;color:#fff">Digitalización por solicitud</h2>
+          <p style="color:#aaa6b0;line-height:1.65">{message}<br>Si necesitas digitalizar entradas, solicítalo directamente a Festholic.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.link_button(
+        "Solicitar digitalización",
+        "https://wa.me/51968424445?text=Hola%2C%20quiero%20solicitar%20la%20digitalizaci%C3%B3n%20de%20mis%20entradas",
+        icon=":material/chat:",
+        width="stretch",
+    )
+    st.stop()
+
+
 @st.cache_data(show_spinner=False, max_entries=64)
 def digitalize_qr(data: bytes, pipeline_version: str):
     # La versión forma parte de la llave del caché. Cuando cambia el pipeline,
@@ -591,6 +639,9 @@ def show_generation_dialog(
 
     if errors:
         st.caption(f"{len(errors)} entrada(s) requieren revisión y no se incluyeron en la descarga.")
+
+
+require_festholic_access()
 
 
 with st.container(border=False):
