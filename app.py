@@ -310,7 +310,9 @@ def require_festholic_access() -> None:
     st.markdown(
         f"""
         <style>
-          .access-gate{{max-width:650px;margin:10vh auto 0;padding:1px;border-radius:25px;background:linear-gradient(120deg,#ff2e9f,#ff7043 52%,#25c9e8);box-shadow:0 28px 80px rgba(0,0,0,.38)}}
+          body:has(.access-gate-shell) [data-testid="stMainBlockContainer"]{{max-width:none!important;padding-top:0!important;padding-bottom:0!important}}
+          .access-gate-shell{{min-height:calc(100dvh - 38px);display:grid;place-items:center;padding:24px;box-sizing:border-box}}
+          .access-gate{{width:min(100%,650px);margin:0 auto;padding:1px;border-radius:25px;background:linear-gradient(120deg,#ff2e9f,#ff7043 52%,#25c9e8);box-shadow:0 28px 80px rgba(0,0,0,.38)}}
           .access-gate__card{{position:relative;overflow:hidden;padding:38px;border-radius:24px;background:#15161b;text-align:center}}
           .access-gate__card::before{{content:"";position:absolute;right:-70px;top:-90px;width:230px;height:230px;border:38px solid rgba(37,201,232,.055);border-radius:50%}}
           .access-gate__icon{{position:relative;display:grid;width:66px;height:66px;margin:0 auto 20px;place-items:center;border-radius:20px;background:#25c9e8;color:#071519;box-shadow:0 12px 28px rgba(37,201,232,.18)}}
@@ -321,28 +323,29 @@ def require_festholic_access() -> None:
           .access-gate__note{{position:relative;display:flex;align-items:center;justify-content:center;gap:8px;margin:20px auto 0;color:#ddd9e1;font-size:12px;font-weight:700}}
           .access-gate__note svg{{width:17px;height:17px;color:#ff7043}}
           .access-gate__actions{{position:relative;display:grid;grid-template-columns:1.25fr .75fr;gap:10px;margin-top:24px}}
-          .access-gate__button{{min-height:48px;display:flex;align-items:center;justify-content:center;gap:9px;padding:0 17px;border-radius:14px;color:#fff!important;font-size:12px;font-weight:850;text-decoration:none!important;transition:transform .16s ease,filter .16s ease}}
-          .access-gate__button:hover{{transform:translateY(-1px);filter:brightness(1.07)}}
+          .access-gate__button{{min-height:48px;display:flex;align-items:center;justify-content:center;gap:9px;padding:0 17px;border-radius:14px;color:#fff!important;font-size:12px;font-weight:850;text-decoration:none!important;box-shadow:none!important;transition:background-color .16s ease}}
+          .access-gate__button:hover{{transform:none;filter:none}}
           .access-gate__button svg{{width:18px;height:18px}}
-          .access-gate__button--whatsapp{{background:#1fa855;box-shadow:0 10px 24px rgba(31,168,85,.22)}}
-          .access-gate__button--panel{{background:#25c9e8;color:#071519!important;box-shadow:0 10px 24px rgba(37,201,232,.18)}}
+          .access-gate__button--whatsapp{{background:#1fa855}}.access-gate__button--whatsapp:hover{{background:#198b47}}
+          .access-gate__button--panel{{background:#25c9e8;color:#071519!important}}.access-gate__button--panel:hover{{background:#1eabc5}}
           .access-gate__footer{{position:relative;margin-top:16px;color:#706d76;font-size:10px}}
-          @media(max-width:560px){{.access-gate{{margin:7vh 8px 0}}.access-gate__card{{padding:28px 20px}}.access-gate h2{{font-size:23px!important}}.access-gate__actions{{grid-template-columns:1fr}}}}
+          @media(max-width:560px){{.access-gate-shell{{min-height:calc(100dvh - 38px);height:auto;padding:18px 10px max(54px,env(safe-area-inset-bottom));overflow:visible}}.access-gate__card{{padding:25px 18px 22px}}.access-gate__icon{{width:60px;height:60px;margin-bottom:16px}}.access-gate h2{{font-size:22px!important}}.access-gate__copy{{font-size:12px;line-height:1.55}}.access-gate__note{{margin-top:16px;font-size:11px}}.access-gate__actions{{grid-template-columns:1fr;margin-top:19px}}.access-gate__button{{min-height:44px}}.access-gate__footer{{margin-top:13px}}}}
+          @media(max-height:620px) and (max-width:560px){{.access-gate-shell{{place-items:start center;padding-top:12px}}.access-gate__card{{padding-top:20px}}.access-gate__icon{{width:52px;height:52px;margin-bottom:12px}}.access-gate__note{{margin-top:12px}}.access-gate__actions{{margin-top:15px;gap:8px}}.access-gate__footer{{display:none}}}}
         </style>
-        <section class="access-gate">
+        <div class="access-gate-shell"><section class="access-gate">
           <div class="access-gate__card">
             <span class="access-gate__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3"/></svg></span>
             <div class="access-gate__eyebrow">ACCESO PRIVADO</div>
             <h2>Digitalización por solicitud</h2>
-            <p class="access-gate__copy">{message}<br>Envíanos tus entradas y nosotros realizaremos la digitalización por ti.</p>
+            <p class="access-gate__copy">{message}<br>Escríbenos para solicitar acceso con tu correo y usar la herramienta, o para pedir la digitalización de tus entradas.</p>
             <div class="access-gate__note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.7-5A7 7 0 0 1 3 12V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>Atención directa con Keenscy Sanchez</div>
             <div class="access-gate__actions">
-              <a class="access-gate__button access-gate__button--whatsapp" href="https://wa.me/51968424445?text=Hola%2C%20quiero%20solicitar%20la%20digitalizaci%C3%B3n%20de%20mis%20entradas" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.3A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 8.5c.5 3 2 4.5 5 5"/></svg>WhatsApp · +51 968 424 445</a>
+              <a class="access-gate__button access-gate__button--whatsapp" href="https://wa.me/51968424445?text=Hola%2C%20quiero%20solicitar%20acceso%20al%20digitalizador%20con%20mi%20correo" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.1-5.3A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 8.5c.5 3 2 4.5 5 5"/></svg>Contactar · +51 968 424 445</a>
               <a class="access-gate__button access-gate__button--panel" href="https://festholic.com/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>Volver al panel</a>
             </div>
             <div class="access-gate__footer">Festholic · Servicio de digitalización de entradas</div>
           </div>
-        </section>
+        </section></div>
         """,
         unsafe_allow_html=True,
     )
