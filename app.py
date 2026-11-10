@@ -286,7 +286,7 @@ def verify_festholic_access(token: str) -> dict:
     request = Request(
         "https://festholic.com/api/digitalizer/verify",
         data=json.dumps({"token": token}).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Festholic-Digitalizer/1.0"},
         method="POST",
     )
     try:
