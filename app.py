@@ -1212,18 +1212,39 @@ with preview_column:
         if generation_error:
             st.error(generation_error, icon="🚨")
         elif generation_mode == "Varias entradas" and batch_entries:
-            base_name = st.text_input(
-                "Nombre base de los PDF",
-                value="E-ticket",
-                key=f"batch_download_name_{pdf_name}",
-                help="Los archivos se numerarán automáticamente: nombre-001.pdf, nombre-002.pdf…",
-            )
+            name_column, sequence_column = st.columns([1.7, 1])
+            with name_column:
+                base_name = st.text_input(
+                    "Nombre base de los PDF",
+                    value="E-ticket",
+                    key=f"batch_download_name_{pdf_name}",
+                    help="Este nombre se combinará con la numeración correlativa de cada entrada.",
+                )
+            with sequence_column:
+                last_used_number = int(
+                    st.number_input(
+                        "Último número utilizado",
+                        min_value=0,
+                        value=0,
+                        step=1,
+                        key=f"batch_last_used_number_{pdf_name}",
+                        help="Si tu última entrada fue la 10, escribe 10 y este lote comenzará en la 11.",
+                    )
+                )
             safe_base = safe_filename_stem(base_name)
+            first_number = last_used_number + 1
+            final_number = last_used_number + len(batch_entries)
             numbered_entries = [
                 (f"{safe_base}-{index:03d}{batch_seat_labels.get(entry_key, '')}.pdf", pdf_bytes)
-                for index, (entry_key, pdf_bytes) in enumerate(batch_entries, start=1)
+                for index, (entry_key, pdf_bytes) in enumerate(batch_entries, start=first_number)
             ]
             zip_data = build_ticket_zip(numbered_entries)
+            st.info(
+                f"Este lote se descargará del **{safe_base}-{first_number:03d}.pdf** al "
+                f"**{safe_base}-{final_number:03d}.pdf**. Para continuar después, usa "
+                f"**{final_number}** como último número utilizado.",
+                icon="🔢",
+            )
             st.caption(f"El ZIP contiene {len(numbered_entries)} PDF independientes. La vista previa corresponde a la primera entrada.")
             if batch_generation_errors:
                 st.warning(
@@ -1231,7 +1252,7 @@ with preview_column:
                     + "\n".join(f"- {message}" for message in batch_generation_errors),
                     icon="⚠️",
                 )
-            completion_key = f"batch:{safe_base}:{len(numbered_entries)}"
+            completion_key = f"batch:{safe_base}:{first_number}:{final_number}:{len(numbered_entries)}"
             st.download_button(
                 f"Digitalizar y descargar {len(numbered_entries)} entradas",
                 data=zip_data,
@@ -1242,7 +1263,7 @@ with preview_column:
                 width="stretch",
                 on_click=complete_download,
                 args=(len(numbered_entries), "batch", completion_key),
-                key=f"download_batch_{safe_base}",
+                key=f"download_batch_{safe_base}_{first_number}_{final_number}",
             )
             if st.session_state.pop("completion_modal_key", "") == completion_key:
                 show_generation_dialog(

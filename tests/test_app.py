@@ -52,3 +52,24 @@ def test_valid_batch_qr_renders_original_and_rebuilt_comparison():
     assert "QR físico" in comparisons[0]
     assert "Digitalizado" in comparisons[0]
     assert not app.exception
+
+
+def test_batch_download_continues_after_last_used_number():
+    app_path = Path(__file__).resolve().parents[1] / "app.py"
+    qr = cv2.QRCodeEncoder_create().encode("festholic-sequential-numbering")
+    qr = cv2.resize(qr, None, fx=10, fy=10, interpolation=cv2.INTER_NEAREST)
+    encoded, png = cv2.imencode(".png", qr)
+    assert encoded
+
+    app = authorized_app(app_path)
+    app.segmented_control(key="generation_mode").set_value("Varias entradas").run()
+    app.file_uploader(key="qr_files").set_value(
+        [("entrada-01.png", png.tobytes(), "image/png")]
+    ).run(timeout=30)
+
+    app.number_input[0].set_value(10).run(timeout=30)
+
+    messages = [str(element.value) for element in app.info]
+    assert any("E-ticket-011.pdf" in message for message in messages)
+    assert any("**11** como último número utilizado" in message for message in messages)
+    assert not app.exception
